@@ -13,22 +13,22 @@ void printGrid(int num_rows, int num_columns, int playerrow, int playercol, int 
     for (int j = 0; j < num_columns; j++) {
       if (j == 0){
         if(i == playerrow && j == playercol){
-           row.push_back("|P|"); 
+          row.push_back("|P|"); 
         }else if(i == enemyrow && j == enemycol){
-           row.push_back("|E|"); 
+          row.push_back("|E|"); 
         }
         else{
-           row.push_back("|_|"); 
+          row.push_back("|_|"); 
         }
       }
       else{
         if(i == playerrow && j == playercol){
-           row.push_back("P|"); 
+          row.push_back("P|"); 
         }else if(i == enemyrow && j == enemycol){
-           row.push_back("E|"); 
+          row.push_back("E|"); 
         }
         else{
-           row.push_back("_|");
+          row.push_back("_|");
         }
       }
     }
@@ -82,23 +82,26 @@ int main() {
         cout << "Where do you want to go?: ";  
         cin >> playerinput;
         if(playerinput == "north" || playerinput == "n"){
-            playerrow -= 1;
-            printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
-        }else if(playerinput == "south" || playerinput == "s"){
-            playerrow += 1;
-            printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
-        }else if(playerinput == "east" || playerinput == "e"){
-            playercol -= 1;
-            printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
-        }else if(playerinput == "west" || playerinput == "w"){
-        playercol += 1;
-        printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
-        }
-
-        if((playerrow == enemyrow) && (playercol == enemycol)){
+          playerrow -= 1;
+          printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
+        } else if(playerinput == "south" || playerinput == "s"){
+          playerrow += 1;
+          printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
+        } else if(playerinput == "east" || playerinput == "e"){
+          playercol -= 1;
+          printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
+        } else if(playerinput == "west" || playerinput == "w"){
+          playercol += 1;
+          printGrid(num_rows, num_columns, playerrow, playercol, enemyrow, enemycol);
+        } else if (playerinput == "attack" || playerinput == "a"){
+          if((playerrow == enemyrow) && (playercol == enemycol)){
             cout << "Defeated the enemy." << endl;
             defeated = true;
+          }
+        } else if (playerinput == "exit"){
+          defeated = true;
         }
+        
     }
 
   return 0;
