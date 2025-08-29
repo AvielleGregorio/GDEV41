@@ -15,35 +15,35 @@ void printGrid(int num_rows, int num_columns, int playerrow, int playercol, int 
       vector<string> row;
       // for (int j = 0; j < 2*num_columns+1; j++) {
         if (i==0) {
-          cout << "┌";
+          cout << "+";
           for (int k = 0; k < num_columns; k++) {
-            cout << "───";
+            cout << "---";
             if (k != num_columns-1) {
-              cout << "┬";
+              cout << "+";
             }
           }
-          cout << "┐";
+          cout << "+";
         } else if (i == 2*num_rows) {
-          cout << "└";
+          cout << "+";
           for (int k = 0; k < num_columns; k++) {
-            cout << "───";
+            cout << "---";
             if (k != num_columns-1) {
-              cout << "┴";
+              cout << "+";
             }
           }
-          cout << "┘";
+          cout << "+";
         } else {
           if (i%2==0) {
-            cout << "├";
+            cout << "+";
             for (int k = 0; k < num_columns; k++) {
-              cout << "───";
+              cout << "---";
               if (k != num_columns-1) {
-                cout << "┼";
+                cout << "+";
               }
             }
-            cout << "┤";
+            cout << "+";
           } else {
-            cout << "│ ";
+            cout << "| ";
             for (int k = 0; k < num_columns; k++) {
               if (playerrow == (i-1)/2 && playercol == k) {
                 cout << "P ";
@@ -53,10 +53,10 @@ void printGrid(int num_rows, int num_columns, int playerrow, int playercol, int 
                 cout << "  ";
               }
               if (k != num_columns-1) {
-                cout << "│ ";
+                cout << "| ";
               }
             }
-            cout << "│";
+            cout << "|";
           }
         }
       // }
@@ -106,7 +106,7 @@ int main() {
   string playerinput;
   bool defeated;
 
-  cout << enemyDirection << endl;
+  // cout << enemyDirection << endl;
   vector<vector<string>> grid;
 
   ifstream settings("settings.txt");
