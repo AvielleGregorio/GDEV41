@@ -1,3 +1,4 @@
 *.exe
 raylib/
 va_*.cpp
+libraylib.a
