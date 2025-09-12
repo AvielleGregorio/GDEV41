@@ -19,8 +19,8 @@ struct Bullet {
   bool isActive = false; 
 };
 
-const int MAX_BULLETS = 1;
-const float bulletSpeed = 550.0f;
+const int MAX_BULLETS = 20;
+const float bulletSpeed = 300.0f;
 
 int main() {
   SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -62,8 +62,6 @@ int main() {
     if (shotCooldown) {
       timer -= frametime;
       if (timer <= 0.0f) {
-        // TODO: change this implementation for multiple bullets
-        bullets[0].isActive = false;
         shotCooldown = false;
       }
     }
@@ -80,17 +78,29 @@ int main() {
         b.bulletVel = {normDir.x * bulletSpeed, normDir.y * bulletSpeed};
         b.isActive = true;
 
-        bullets[0] = b;
+        bullets[bulletCount] = b;
+        bulletCount += 1;
+        if (bulletCount == MAX_BULLETS) {
+          bulletCount = 0;
+        }
 
         timer = 1;
         shotCooldown = true;
       }
     }
 
-    if (bullets[0].isActive) {
-      bullets[0].bulletPos.x += bullets[0].bulletVel.x * frametime;
-      bullets[0].bulletPos.y += bullets[0].bulletVel.y * frametime;
-      DrawCircleV(bullets[0].bulletPos, 5, RED);
+    for (int i = 0; i <= MAX_BULLETS; i ++) {
+      if (bullets[i].isActive) {
+        bullets[i].bulletPos.x += bullets[i].bulletVel.x * frametime;
+        bullets[i].bulletPos.y += bullets[i].bulletVel.y * frametime;
+
+        // Deactivates when bullet is off screen
+        if (bullets[i].bulletPos.x < 0 || bullets[i].bulletPos.x > 800 || bullets[i].bulletPos.y < 0 || bullets[i].bulletPos.y > 600) {
+          bullets[i].isActive = false;
+        }
+
+        DrawCircleV(bullets[i].bulletPos, 5, RED);
+      }
     }
 
     //DrawCircle(player.x, player.y, player.size, player.color);
