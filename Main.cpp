@@ -1,5 +1,6 @@
 #include <iostream>
 #include <raylib.h>
+#include <cmath>
 using namespace std;
 
 struct Player {
@@ -61,13 +62,15 @@ int main() {
     if (shotCooldown) {
       timer -= frametime;
       if (timer <= 0.0f) {
+        // TODO: change this implementation for multiple bullets
+        bullets[0].isActive = false;
         shotCooldown = false;
       }
     }
 
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) && !shotCooldown && !bullets[0].isActive) {
+    if ((IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonDown(MOUSE_LEFT_BUTTON)) && !shotCooldown && !bullets[0].isActive) {
       // Vector formula
-      float len= sqrt(player.playerDir.x * player.playerDir.x + player.playerDir.y * player.playerDir.y);
+      float len = sqrt(player.playerDir.x * player.playerDir.x + player.playerDir.y * player.playerDir.y);
 
       // Checks if Player is moving; If yes, draw bullets
       if (len > 0.0f) {
