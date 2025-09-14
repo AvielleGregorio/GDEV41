@@ -19,6 +19,14 @@ struct Bullet {
   bool isActive = false; 
 };
 
+struct AOE {
+  bool isActive = false;
+  float radius = 0.0f;
+  float maxRadius = 100.0f;
+  float elapsed = 0.0f;
+  float duration = 0.5f;
+};
+
 const int MAX_BULLETS = 20;
 const float bulletSpeed = 300.0f;
 const int WINDOW_WIDTH = 800;
@@ -33,7 +41,11 @@ int main() {
   int bulletCount = 0;
 
   float timer = 0.0f;
+  float aoetimer = 0.0f;
   bool shotCooldown = false;
+  bool aoeCooldown = false;
+
+  AOE aoe;
 
 	while (!WindowShouldClose()) {
     BeginDrawing();
@@ -104,6 +116,37 @@ int main() {
         DrawCircleV(bullets[i].bulletPos, 5, RED);
       }
     }
+
+    //AOE Skill!
+
+    if (aoeCooldown) {
+      aoetimer -= frametime;
+      if (aoetimer <= 0.0f) {
+        aoeCooldown = false;
+      }
+    }
+
+    if (IsKeyPressed(KEY_SPACE) && !aoe.isActive && !aoeCooldown) {
+        aoe.isActive = true;
+        aoe.radius = 0.0f;
+        aoe.elapsed = 0.0f;
+        aoeCooldown = true;
+    }
+
+    if (aoe.isActive && aoeCooldown) {
+        aoe.elapsed += frametime;
+        float t = aoe.elapsed / aoe.duration;
+        if (t >= 1.0f) {
+            aoe.isActive = false;
+            t = 1.0f;
+        }
+
+        aoe.radius = aoe.maxRadius * t;
+        DrawCircleV(player.playerPos, aoe.radius, YELLOW);
+        aoetimer = 5;
+        shotCooldown = true;
+    }
+
 
     //DrawCircle(player.x, player.y, player.size, player.color);
     DrawCircleV(player.playerPos, player.size, player.color);
