@@ -6,10 +6,12 @@ using namespace std;
 struct Player {
   // Set player's initial position in the middle of the screen
   Vector2 playerPos = {400, 300};
-  int size = 25;
+  int size = 35;
   int speed = 200;
   Color color = BLUE;
   Vector2 playerDir;
+  Texture texture = LoadTexture("IDLE_WALK.png");
+  Rectangle texSource = {0, 0, 16, 16};
 };
 
 struct Bullet {
@@ -22,7 +24,7 @@ struct Bullet {
 struct AOE {
   bool isActive = false;
   float radius = 0.0f;
-  float maxRadius = 100.0f;
+  float maxRadius = 120.0f;
   float elapsed = 0.0f;
   float duration = 0.5f;
 };
@@ -47,6 +49,10 @@ int main() {
   bool aoeCooldown = false;
 
   AOE aoe;
+
+  int currFrame = 0;
+  float playerAnimTimer = 0;
+  float animFPS = 2;
 
 	while (!WindowShouldClose()) {
     BeginDrawing();
@@ -157,17 +163,82 @@ int main() {
         shotCooldown = true;
     }
 
+    bool isWalking = dirPressed[0] || dirPressed[1] || dirPressed[2] || dirPressed[3];
+    if (playerAnimTimer >= 1/animFPS) {
+      player.texSource.x = ((int)((player.texSource.x/16)+1)%4)*16+(isWalking*64);
+      playerAnimTimer = 0;
+    }
+    
+    if (dirPressed[0]) {
+      if (dirPressed[2]) {
+        player.texSource.y = 16;
+        player.texSource.width = 16;
+      } else if (dirPressed[3]) {
+        player.texSource.y = 16;
+        player.texSource.width = -16;
+      } else {
+        player.texSource.y = 0;
+      }
+    } else if (dirPressed[1]) {
+      if (dirPressed[2]) {
+        player.texSource.y = 48;
+        player.texSource.width = 16;
+      } else if (dirPressed[3]) {
+        player.texSource.y = 48;
+        player.texSource.width = -16;
+      } else {
+        player.texSource.y = 64;
+      }
+    } else if (dirPressed[2]) {
+      player.texSource.y = 32;
+        player.texSource.width = 16;
+    } else if (dirPressed[3]) {
+      player.texSource.y = 32;
+      player.texSource.width = -16;
+    }
+    
+
+    playerAnimTimer += frametime;
+
+
 
     //DrawCircle(player.x, player.y, player.size, player.color);
+    DrawCircleSector(
+      player.playerPos,
+      player.size + 10,
+      0,
+      ((5-aoetimer)/5)*360,
+      0,
+      YELLOW
+    );
     DrawCircleV(player.playerPos, player.size, player.color);
-    Color lineColor = FOLLOW_MOUSE ? BLUE : (player.playerDir.x != 0 && player.playerDir.y != 0 ? RED : GREEN);
+    int destSize = 64;
+    DrawTexturePro(
+      player.texture,
+      player.texSource,
+      {player.playerPos.x, player.playerPos.y, 64, 64},
+      {(float)(destSize/2), (float)(destSize/2)},
+      0,
+      WHITE
+    );
     DrawCircleLinesV(
       {
-        player.playerPos.x + (bulletDir.x*50),
-        player.playerPos.y + (bulletDir.y*50)
+        player.playerPos.x + (bulletDir.x*65),
+        player.playerPos.y + (bulletDir.y*65)
       },
       10,
-      lineColor
+      RED
+    );
+    DrawCircleSector(
+      {
+        player.playerPos.x + (bulletDir.x*65),
+        player.playerPos.y + (bulletDir.y*65)
+      },
+      10,
+      0,
+      (1-timer)*360,
+      1,
+      RED
     );
 
     EndDrawing();
