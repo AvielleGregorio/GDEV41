@@ -31,6 +31,7 @@ const int MAX_BULLETS = 20;
 const float bulletSpeed = 300.0f;
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
+const bool FOLLOW_MOUSE = true;
 
 int main() {
   SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -71,8 +72,17 @@ int main() {
     }
     
     // Vector formula
+    Vector2 bulletDir;
+
     float len = sqrt(player.playerDir.x * player.playerDir.x + player.playerDir.y * player.playerDir.y);
-    Vector2 normDir = {player.playerDir.x / len, player.playerDir.y / len};
+    
+    if (FOLLOW_MOUSE) {
+      Vector2 mousePos = GetMousePosition();
+      float mouseVMag = sqrt(pow(mousePos.x - player.playerPos.x, 2)+pow(mousePos.y - player.playerPos.y, 2));
+      bulletDir = {(mousePos.x - player.playerPos.x)/mouseVMag, (mousePos.y - player.playerPos.y)/mouseVMag};
+    } else {
+      bulletDir = {player.playerDir.x / len, player.playerDir.y / len};
+    }
 
     if (
       (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonDown(MOUSE_LEFT_BUTTON)) 
@@ -84,7 +94,7 @@ int main() {
       if (len > 0.0f) {
         Bullet b;
         b.bulletPos = player.playerPos;
-        b.bulletVel = {normDir.x * bulletSpeed, normDir.y * bulletSpeed};
+        b.bulletVel = {bulletDir.x * bulletSpeed, bulletDir.y * bulletSpeed};
         b.isActive = true;
 
         bullets[bulletCount] = b;
@@ -93,7 +103,7 @@ int main() {
           bulletCount = 0;
         }
 
-        timer = 0.5;
+        timer = 1;
         shotCooldown = true;
       }
     }
@@ -150,11 +160,11 @@ int main() {
 
     //DrawCircle(player.x, player.y, player.size, player.color);
     DrawCircleV(player.playerPos, player.size, player.color);
-    Color lineColor = (player.playerDir.x != 0 && player.playerDir.y != 0 ? RED : YELLOW);
+    Color lineColor = FOLLOW_MOUSE ? BLUE : (player.playerDir.x != 0 && player.playerDir.y != 0 ? RED : GREEN);
     DrawCircleLinesV(
       {
-        player.playerPos.x + (normDir.x*50),
-        player.playerPos.y + (normDir.y*50)
+        player.playerPos.x + (bulletDir.x*50),
+        player.playerPos.y + (bulletDir.y*50)
       },
       10,
       lineColor
