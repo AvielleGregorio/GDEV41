@@ -63,12 +63,19 @@ int main() {
 
     player.playerDir = {0, 0};
 
+    // === PLAYER MOVEMENT ===
+
+    // Checks which keys are being pressed
     bool dirPressed[4] = {IsKeyDown(KEY_S), IsKeyDown(KEY_W), IsKeyDown(KEY_A), IsKeyDown(KEY_D)};
+    // Assigns movement direction based on keys pressed
     player.playerDir.x = (!dirPressed[2] != !dirPressed[3])*(dirPressed[2]?-1:1);
     player.playerDir.y = (!dirPressed[0] != !dirPressed[1])*(dirPressed[1]?-1:1);
+    // Normalizes character movement along diagonals
     bool isDiagonal = (dirPressed[0] || dirPressed[1]) && (dirPressed[2] || dirPressed[3]);
     player.playerPos.x += (isDiagonal?M_SQRT1_2:1)*player.playerDir.x*player.speed*frametime;
     player.playerPos.y += (isDiagonal?M_SQRT1_2:1)*player.playerDir.y*player.speed*frametime;
+
+    // === BULLETS ===
 
     if (shotCooldown) {
       timer -= frametime;
@@ -133,7 +140,7 @@ int main() {
       }
     }
 
-    //AOE Skill!
+    // === AOE SKILL ===
 
     if (aoeCooldown) {
       aoetimer -= frametime;
@@ -162,6 +169,8 @@ int main() {
         aoetimer = 5;
         shotCooldown = true;
     }
+
+    // === CHARACTER ANIMATION ===
 
     bool isWalking = dirPressed[0] || dirPressed[1] || dirPressed[2] || dirPressed[3];
     if (playerAnimTimer >= 1/animFPS) {
@@ -196,13 +205,12 @@ int main() {
       player.texSource.y = 32;
       player.texSource.width = -16;
     }
-    
 
     playerAnimTimer += frametime;
 
+    // === DRAWING ===
 
-
-    //DrawCircle(player.x, player.y, player.size, player.color);
+    // AOE Cooldown Timer
     DrawCircleSector(
       player.playerPos,
       player.size + 10,
@@ -211,7 +219,11 @@ int main() {
       0,
       YELLOW
     );
+
+    // Player Circle
     DrawCircleV(player.playerPos, player.size, player.color);
+
+    // Player Sprite
     int destSize = 64;
     DrawTexturePro(
       player.texture,
@@ -221,6 +233,8 @@ int main() {
       0,
       WHITE
     );
+
+    // Bullet Direction Indicator
     DrawCircleLinesV(
       {
         player.playerPos.x + (bulletDir.x*65),
@@ -229,6 +243,8 @@ int main() {
       10,
       RED
     );
+
+    // Bullet Cooldown Timer
     DrawCircleSector(
       {
         player.playerPos.x + (bulletDir.x*65),
