@@ -22,6 +22,7 @@ struct Bullet {
 };
 
 struct AOE {
+  // Set the AOE
   bool isActive = false;
   float radius = 0.0f;
   float maxRadius = 120.0f;
@@ -149,6 +150,7 @@ int main() {
       }
     }
 
+    //Aoe Activation 
     if (IsKeyPressed(KEY_SPACE) && !aoe.isActive && !aoeCooldown) {
         aoe.isActive = true;
         aoe.radius = 0.0f;
@@ -156,18 +158,19 @@ int main() {
         aoeCooldown = true;
     }
 
+    //AOE drawing and 5 second timer
     if (aoe.isActive && aoeCooldown) {
         aoe.elapsed += frametime;
-        float t = aoe.elapsed / aoe.duration;
+        //Happening over a span of 0.5 seconds
+        float t = aoe.elapsed / aoe.duration; 
         if (t >= 1.0f) {
             aoe.isActive = false;
             t = 1.0f;
         }
-
+        //Steady size growth over the
         aoe.radius = aoe.maxRadius * t;
         DrawCircleV(player.playerPos, aoe.radius, YELLOW);
         aoetimer = 5;
-        shotCooldown = true;
     }
 
     // === CHARACTER ANIMATION ===
