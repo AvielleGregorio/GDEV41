@@ -1,115 +1,221 @@
-#include <iostream>
 #include <raylib.h>
-#include <cmath>
-using namespace std;
+#include <raymath.h>
 
-struct Player {
-  // Set player's initial position in the middle of the screen
-  Vector2 playerPos = {400, 300};
-  int size = 25;
-  int speed = 200;
-  Color color = BLUE;
-  Vector2 playerDir;
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 600;
+const float FPS = 60;
+const float TIMESTEP = 1/FPS;
+float speed = 180;
+float maxDrag = 150.0f;
+float forceScale = 10.0f;
+const int NUM_BALLS = 6;
+
+// Boolean to check if Mouse is being dragged
+bool isDragging = false;
+Vector2 dragStart = {0, 0};
+Vector2 dragEnd = {0, 0};
+
+struct Pocket {
+    int x;
+    int y; 
+    int rad;
+    Color color;
 };
 
-struct Bullet {
-  // Set the Bullets
-  Vector2 bulletPos;
-  Vector2 bulletVel; 
-  bool isActive = false; 
+struct Rail {
+    Rectangle rail;
+    Color color;
 };
 
-const int MAX_BULLETS = 20;
-const float bulletSpeed = 300.0f;
+struct Ball {
+    Vector2 position;
+    float rad;
+    Color color;
+    float mass;
+    float inverse_mass;
+    Vector2 acceleration;
+    Vector2 velocity;
+};
+
+Pocket pockets[4] = {
+    {40, 40, 40, BLACK},
+    {760, 40, 40, BLACK},
+    {40, 560, 40, BLACK},
+    {760, 560, 40, BLACK}
+};
+
+Rail rails[4] = {
+    {{80, 0, 640, 35}, MAROON}, // Top Rail
+    {{0, 80, 35, 440}, MAROON}, // Left Rail
+    {{765, 80, 35, 440}, MAROON}, // Right Rail
+    {{80, 565, 640, 35}, MAROON} // Bottom Rail
+};
+
+int current = 0;
+
+// Collision (can be translated into the main loop)
+void BallCollision (Ball &a, Ball &b) {
+    Vector2 normal = Vector2Subtract(b.position, a.position);
+    float ballDist = Vector2Length(normal);
+    if (ballDist == 0.0f) {
+        return;
+    }
+
+    normal = Vector2Scale(normal, 1.0f/ballDist);
+
+    float repel = (a.rad + b.rad) - ballDist;
+    Vector2 correction = Vector2Scale(normal, repel/2.0f);
+
+    a.position = Vector2Subtract(a.position, correction);
+    b.position = Vector2Subtract(b.position, correction);
+
+    Vector2 relativeVel = Vector2Subtract(b.velocity, a.velocity);
+
+    float velAlongNormal = Vector2DotProduct(relativeVel, normal);
+
+    if (velAlongNormal > 0) {
+        return;
+    }
+
+    float restitution = 1.0f;
+
+    float j = -(1 + restitution) * velAlongNormal;
+    j /= (a.inverse_mass + b.inverse_mass);
+
+    Vector2 force = Vector2Scale(normal, j);
+    a.velocity = Vector2Subtract(a.velocity, Vector2Scale(force, a.inverse_mass));
+    b.velocity = Vector2Add(b.velocity, Vector2Scale(force, b.inverse_mass));
+}
 
 int main() {
-  SetConfigFlags(FLAG_WINDOW_HIGHDPI);
-	InitWindow(800, 600, "Pew Pew Pew");
+    SetConfigFlags(FLAG_WINDOW_HIGHDPI);
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Billiards!");
+    SetTargetFPS(FPS);
 
-  Player player;
-  Bullet bullets[MAX_BULLETS];
-  int bulletCount = 0;
+    Ball balls[NUM_BALLS] = {
+        {{150, 300}, 35, WHITE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
+        {{700, 300}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
+        {{170, 200}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
+        {{370, 450}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
+        {{420, 150}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()}
+    };
 
-  float timer = 0.0f;
-  bool shotCooldown = false;
+    
 
-	while (!WindowShouldClose()) {
-    BeginDrawing();
 
-    float frametime = GetFrameTime();
+    float accumulator = 0;
 
-    DrawRectangle(0, 0, 800, 600, BLACK);
+    while (!WindowShouldClose()) {
+        float deltaTime = GetFrameTime();
 
-    player.playerDir = {0, 0};
+        // Cue Ball Mouse Input
+        if (Vector2Length(balls[0].velocity) < 0.7f) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = GetMousePosition();
+                if (CheckCollisionPointCircle(mousePos, balls[0].position, balls[0].rad)) {
+                    isDragging = true;
+                    dragStart = balls[0].position;
+                }
+            }
 
-    if (IsKeyDown(KEY_S)){
-        player.playerPos.y += player.speed*frametime;
-        player.playerDir.y = 1; 
-    }
-    if (IsKeyDown(KEY_W)){
-        player.playerPos.y -= player.speed*frametime;
-        player.playerDir.y = -1;
-    }
-    if (IsKeyDown(KEY_A)){
-        player.playerPos.x -= player.speed*frametime;
-        player.playerDir.x = -1;
-    }
-    if (IsKeyDown(KEY_D)){
-        player.playerPos.x += player.speed*frametime;
-        player.playerDir.x = 1;
-    }
+            if (isDragging && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                dragEnd = GetMousePosition();
+            }
 
-    if (shotCooldown) {
-      timer -= frametime;
-      if (timer <= 0.0f) {
-        shotCooldown = false;
-      }
-    }
+            // Limits the Max Drag of the Cue ball
+            if (isDragging) {
+                dragEnd = GetMousePosition();
 
-    if ((IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonDown(MOUSE_LEFT_BUTTON)) && !shotCooldown && !bullets[0].isActive) {
-      // Vector formula
-      float len = sqrt(player.playerDir.x * player.playerDir.x + player.playerDir.y * player.playerDir.y);
+                Vector2 dragVec = Vector2Subtract(dragEnd, dragStart);
+                float dragLen = Vector2Length(dragVec);
 
-      // Checks if Player is moving; If yes, draw bullets
-      if (len > 0.0f) {
-        Bullet b;
-        b.bulletPos = player.playerPos;
-        Vector2 normDir = {player.playerDir.x / len, player.playerDir.y / len};
-        b.bulletVel = {normDir.x * bulletSpeed, normDir.y * bulletSpeed};
-        b.isActive = true;
+                if (dragLen > maxDrag) {
+                    dragVec = Vector2Scale(Vector2Normalize(dragVec), maxDrag);
+                    dragEnd = Vector2Add(dragStart, dragVec);
+                    dragLen = maxDrag;
+                }
 
-        bullets[bulletCount] = b;
-        bulletCount += 1;
-        if (bulletCount == MAX_BULLETS) {
-          bulletCount = 0;
+                if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                    Vector2 forceDir = Vector2Normalize(Vector2Subtract(dragStart, dragEnd));
+                    Vector2 impulse = Vector2Scale(forceDir, dragLen * forceScale);
+                    balls[0].velocity = Vector2Add(balls[0].velocity, Vector2Scale(impulse, balls[0].inverse_mass));
+                    isDragging = false;
+                }
+            }
+
         }
 
-        timer = 1;
-        shotCooldown = true;
-      }
-    }
+        accumulator += deltaTime;
+        while (accumulator >= TIMESTEP) {
+            float resistance = 0.4f;
+            for (int i = 0; i < NUM_BALLS; i++) {
+                balls[i].velocity = Vector2Add(balls[i].velocity, Vector2Scale(balls[i].acceleration, TIMESTEP));
+                Vector2 ballFriction = Vector2Scale(balls[i].velocity, -(resistance / balls[i].mass) * TIMESTEP);
+                balls[i].velocity = Vector2Add(balls[i].velocity, ballFriction);
+                balls[i].position = Vector2Add(balls[i].position, Vector2Scale(balls[i].velocity, TIMESTEP));
+                if (Vector2Length(balls[i].velocity) < 0.09f) {
+                    balls[i].velocity = Vector2Zero();
+                }
+            }
 
-    for (int i = 0; i <= MAX_BULLETS; i ++) {
-      if (bullets[i].isActive) {
-        bullets[i].bulletPos.x += bullets[i].bulletVel.x * frametime;
-        bullets[i].bulletPos.y += bullets[i].bulletVel.y * frametime;
+            accumulator -= TIMESTEP;
 
-        // Deactivates when bullet is off screen
-        if (bullets[i].bulletPos.x < 0 || bullets[i].bulletPos.x > 800 || bullets[i].bulletPos.y < 0 || bullets[i].bulletPos.y > 600) {
-          bullets[i].isActive = false;
+            // Checks for collistion for every pair of ball
+            for (int i = 0; i < NUM_BALLS; i++) {
+                for (int j = i + 1; j < NUM_BALLS; j++) {
+                    float dist = Vector2Distance(balls[i].position, balls[j].position);
+                    if (dist < balls[i].rad + balls[j].rad) {
+                        BallCollision(balls[i], balls[j]);
+                    }
+                }
+            }
+
+            for (int i = 0; i < NUM_BALLS; i++) {
+                // Left Rial Boundary
+                if (balls[i].position.x - balls[i].rad < rails[1].rail.x + rails[1].rail.width) {
+                    balls[i].position.x = rails[1].rail.x + rails[1].rail.width + balls[i].rad;
+                    balls[i].velocity.x  *= -1;
+                }
+
+                // Right Rail Boundary
+                if (balls[i].position.x + balls[i].rad > rails[2].rail.x) {
+                    balls[i].position.x = rails[2].rail.x - balls[i].rad;
+                    balls[i].velocity.x  *= -1;
+                }
+
+                // Top Rail Boundary
+                if (balls[i].position.y - balls[i].rad < rails[0].rail.y + rails[0].rail.height) {
+                    balls[i].position.y = rails[0].rail.y + rails[0].rail.height + balls[i].rad;
+                    balls[i].velocity.y  *= -1;
+                }
+
+                // Bottom Rail Boundary
+                if (balls[i].position.y + balls[i].rad > rails[3].rail.y) {
+                    balls[i].position.y = rails[3].rail.y - balls[i].rad;
+                    balls[i].velocity.y  *= -1;
+                }
+            }
+
         }
 
-        DrawCircleV(bullets[i].bulletPos, 5, RED);
-      }
+        // Rendering
+        BeginDrawing();
+        ClearBackground(LIME);
+        for (int i = 0; i < NUM_BALLS; i++) {
+            DrawCircle(pockets[i].x, pockets[i].y, pockets[i].rad, pockets[i].color);
+            DrawRectangleRec(rails[i].rail, rails[i].color);
+            DrawCircleV(balls[i].position, balls[i].rad, balls[i].color);  
+            // If you notice, there's one ball that is slightly a different shade of blue.
+            // IDK why :'>
+        }
+
+        if (isDragging) {
+            DrawLineV(dragStart, dragEnd, BLACK);
+        }
+
+        EndDrawing();
     }
-
-    //DrawCircle(player.x, player.y, player.size, player.color);
-    DrawCircleV(player.playerPos, player.size, player.color);
-
-    EndDrawing();
-  }
-
-  CloseWindow();
-  return 0;
+    CloseWindow();
+    return 0;
 }
 
