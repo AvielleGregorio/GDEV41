@@ -29,12 +29,14 @@ struct Rail {
 
 struct Ball {
     Vector2 position;
+    Vector2 initialPosition;
     float rad;
     Color color;
     float mass;
     float inverse_mass;
     Vector2 acceleration;
     Vector2 velocity;
+    bool isActive;
 };
 
 Pocket pockets[4] = {
@@ -93,11 +95,11 @@ int main() {
     SetTargetFPS(FPS);
 
     Ball balls[NUM_BALLS] = {
-        {{150, 300}, 35, WHITE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
-        {{700, 300}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
-        {{170, 200}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
-        {{370, 450}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()},
-        {{420, 150}, 35, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero()}
+        {{150, 300},{150, 300}, 25, WHITE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero(), true},
+        {{700, 300},{700, 300}, 25, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero(), true},
+        {{170, 200},{170, 200}, 25, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero(), true},
+        {{370, 450},{370, 450}, 25, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero(), true},
+        {{420, 150},{420, 150}, 25, DARKBLUE, 1.0f, 1/1.0f, Vector2Zero(), Vector2Zero(), true}
     };
 
     
@@ -107,6 +109,15 @@ int main() {
 
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
+
+        //Check if reset key (R) is pressed and reset the table
+        if (IsKeyPressed(KEY_R)) {
+            for (int i = 0; i < NUM_BALLS; i++) {
+                balls[i].position = balls[i].initialPosition;
+                balls[i].velocity = Vector2Zero();
+                balls[i].isActive = true; // reactivate all balls
+            }
+        }
 
         // Cue Ball Mouse Input
         if (Vector2Length(balls[0].velocity) < 0.7f) {
@@ -194,6 +205,35 @@ int main() {
                     balls[i].position.y = rails[3].rail.y - balls[i].rad;
                     balls[i].velocity.y  *= -1;
                 }
+
+                //Corner Hole checking if a ball overlaps with a pocket
+                for (int p = 0; p < 4; p++) {
+                    float distToPocket = Vector2Distance(balls[i].position, (Vector2){(float)pockets[p].x, (float)pockets[p].y});
+                        if (distToPocket < pockets[p].rad) {
+                            if (i == 0) {
+                                // Resets the cue ball if it pockets
+                                balls[i].position = (Vector2){300, 300}; 
+                                balls[i].velocity = Vector2Zero();
+                            } else {
+                                // Removes a non cue ball if it pockets
+                                balls[i].isActive = false;
+                                balls[i].velocity = Vector2Zero();
+                            }
+                            break; // No need to check other pockets
+                        }
+                }
+
+            //checking if balls are still actives
+            if (!balls[i].isActive) continue;
+            for (int j = i + 1; j < NUM_BALLS; j++) {
+                if (!balls[j].isActive) continue;
+                float dist = Vector2Distance(balls[i].position, balls[j].position);
+                if (dist < balls[i].rad + balls[j].rad) {
+                    BallCollision(balls[i], balls[j]);
+                }
+            }
+
+
             }
 
         }
@@ -204,7 +244,11 @@ int main() {
         for (int i = 0; i < NUM_BALLS; i++) {
             DrawCircle(pockets[i].x, pockets[i].y, pockets[i].rad, pockets[i].color);
             DrawRectangleRec(rails[i].rail, rails[i].color);
-            DrawCircleV(balls[i].position, balls[i].rad, balls[i].color);  
+            if (balls[i].isActive) {
+            DrawCircleV(balls[i].position, balls[i].rad, balls[i].color);
+            }
+            
+            //DrawCircleV(balls[i].position, balls[i].rad, balls[i].color);  
             // If you notice, there's one ball that is slightly a different shade of blue.
             // IDK why :'>
         }
