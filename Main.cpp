@@ -87,13 +87,6 @@ void CircleCollision (Circle circles[], int circleCount) {
                 circles[i].velocity = Vector2Subtract(circles[i].velocity, Vector2Scale(force, circles[i].inverse_mass));
                 circles[j].velocity = Vector2Add(circles[j].velocity, Vector2Scale(force, circles[j].inverse_mass));
             }
-
-
-
-            
-
-
-            
         }
     }
 }
