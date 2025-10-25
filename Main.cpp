@@ -1,10 +1,14 @@
 #include <raylib.h>
 #include <raymath.h>
+#include <vector>  
+using namespace std;
+
 
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
 const float FPS = 60;
 const int MAX_CIRCLES = 5000;
+const int CELL_SIZE = 50;
 
 typedef struct {
     Vector2 position;
@@ -13,10 +17,21 @@ typedef struct {
     float inverse_mass;
     Vector2 velocity;
     Color color;
+    Vector2 currentCell;
 } Circle;
+
+typedef struct {
+    float cellSize;
+    Vector2 position;
+} GridCell;
 
 Circle circles[MAX_CIRCLES];
 int circleCount = 0;
+
+const int CELL_X = WINDOW_WIDTH / CELL_SIZE + 1; 
+const int CELL_Y = WINDOW_HEIGHT / CELL_SIZE + 1; 
+
+GridCell grid[CELL_X][CELL_Y]; 
 
 
 void SpawnCircles(Circle circles[], int*circleCount, int spawnCount) {
@@ -97,6 +112,14 @@ int main() {
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Uniform Grid");
     SetTargetFPS(FPS);
 
+
+    for (int x = 0; x < CELL_X; x++) {
+        for (int y = 0; y < CELL_Y; y++) {
+            grid[x][y].cellSize = CELL_SIZE;
+            grid[x][y].position = {(float)x * CELL_SIZE, (float)y * CELL_SIZE};
+        }
+    }
+
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
 
@@ -108,13 +131,23 @@ int main() {
             circles[i].position.x += circles[i].velocity.x * deltaTime;
             circles[i].position.y += circles[i].velocity.y * deltaTime;
 
-            if (circles[i].position.x - circles[i].radius < 0 ||
-                circles[i].position.x + circles[i].radius > WINDOW_WIDTH)
+            if (circles[i].position.x - circles[i].radius < 0) {
+                circles[i].position.x = circles[i].radius;
                 circles[i].velocity.x *= -1;
-
-            if (circles[i].position.y - circles[i].radius < 0 ||
-                circles[i].position.y + circles[i].radius > WINDOW_HEIGHT)
+            }
+            if (circles[i].position.x + circles[i].radius > WINDOW_WIDTH) {
+                circles[i].position.x = WINDOW_WIDTH - circles[i].radius;
+                circles[i].velocity.x *= -1;
+            }
+            if (circles[i].position.y - circles[i].radius < 0) {
+                circles[i].position.y = circles[i].radius;
                 circles[i].velocity.y *= -1;
+            }
+            if (circles[i].position.y + circles[i].radius > WINDOW_HEIGHT) {
+                circles[i].position.y = WINDOW_HEIGHT - circles[i].radius;
+                circles[i].velocity.y *= -1;
+            }
+
         }
 
         CircleCollision(circles, circleCount);
@@ -122,6 +155,21 @@ int main() {
         // Rendering
         BeginDrawing();
         ClearBackground(WHITE);
+
+        //Draw grid
+        for (int x = 0; x < CELL_X; x++) {
+            for (int y = 0; y < CELL_Y; y++) {
+                DrawRectangleLines(
+                    (int)grid[x][y].position.x,
+                    (int)grid[x][y].position.y,
+                    CELL_SIZE,
+                    CELL_SIZE,
+                    LIGHTGRAY
+                );
+            }
+        }
+
+        //Draw ballz
         for (int i = 0; i < circleCount; i ++) {
             DrawCircleV(circles[i].position, circles[i].radius, circles[i].color);
         }
