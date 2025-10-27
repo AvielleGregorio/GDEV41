@@ -145,10 +145,14 @@ int main() {
             int maxCircleX = floor((circles[i].position.x + circles[i].radius)/CELL_SIZE);
             int minCircleY = floor((circles[i].position.y - circles[i].radius)/CELL_SIZE);
             int maxCircleY = floor((circles[i].position.y + circles[i].radius)/CELL_SIZE);
-            
-            for (int lastCellsX = minCircleX; lastCellsX <= maxCircleX; lastCellsX++) {
-                for (int lastCellsY = minCircleY; lastCellsY <= maxCircleY; lastCellsY++) {
-                    operations++;
+
+            int clampedMinX = (minCircleX < 0) ? 0 : minCircleX;
+            int clampedMinY = (minCircleY < 0) ? 0 : minCircleY;
+            int clampedMaxX = (maxCircleX >= CELL_X) ? (CELL_X - 1) : maxCircleX;
+            int clampedMaxY = (maxCircleY >= CELL_Y) ? (CELL_Y - 1) : maxCircleY;
+
+            for (int lastCellsX = clampedMinX; lastCellsX <= clampedMaxX; lastCellsX++) {
+                for (int lastCellsY = clampedMinY; lastCellsY <= clampedMaxY; lastCellsY++) {
                     circles[i].currentCells.insert(&grid[lastCellsX][lastCellsY]);
                     grid[lastCellsX][lastCellsY].circles.insert(&circles[i]);
                 }
@@ -185,14 +189,20 @@ int main() {
             int maxCircleX = floor((circles[i].position.x + circles[i].radius)/CELL_SIZE);
             int minCircleY = floor((circles[i].position.y - circles[i].radius)/CELL_SIZE);
             int maxCircleY = floor((circles[i].position.y + circles[i].radius)/CELL_SIZE);
-            
+
+            int clampedMinX = (minCircleX < 0) ? 0 : minCircleX;
+            int clampedMinY = (minCircleY < 0) ? 0 : minCircleY;
+            int clampedMaxX = (maxCircleX >= CELL_X) ? (CELL_X - 1) : maxCircleX;
+            int clampedMaxY = (maxCircleY >= CELL_Y) ? (CELL_Y - 1) : maxCircleY;
+
             set<GridCell*> currCells;
-            for (int lastCellsX = minCircleX; lastCellsX <= maxCircleX; lastCellsX++) {
-                for (int lastCellsY = minCircleY; lastCellsY <= maxCircleY; lastCellsY++) {
+            for (int lastCellsX = clampedMinX; lastCellsX <= clampedMaxX; lastCellsX++) {
+                for (int lastCellsY = clampedMinY; lastCellsY <= clampedMaxY; lastCellsY++) {
                     operations++;
                     currCells.insert(&grid[lastCellsX][lastCellsY]);
                 }
             }
+            
             set<GridCell*> oldCells;
             set_difference(circles[i].currentCells.begin(), circles[i].currentCells.end(), currCells.begin(), currCells.end(), inserter(oldCells, oldCells.end()));
             for (GridCell* gc : oldCells) {
