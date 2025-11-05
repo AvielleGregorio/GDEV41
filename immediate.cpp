@@ -41,15 +41,21 @@ struct UiLibrary
             }
         }
 
+
+        Color buttonColor = GRAY;
+        Color textColor = BLACK;
         // If we are currently the hot widget
         if (id == hot)
         {
+            buttonColor = LIGHTGRAY;
             // If the user pressed the left mouse button, that means the user started
             // interacting with this widget, so we set this widget as active
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
-                active = id;
+                active = id;                
+
             }
+
         }
 
         // If the mouse cursor is hovering within our boundaries
@@ -57,6 +63,22 @@ struct UiLibrary
         {
             // Set this widget to be the hot widget
             hot = id;
+
+            // If the left mouse button is held down, color and text change
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+            {
+                // Button held down color
+                buttonColor = RED;
+                textColor = WHITE;
+                active = id;
+            }
+            else
+            {
+                // Releasing reverts back to original
+                buttonColor = LIGHTGRAY;
+                textColor = BLACK;
+            }
+
         }
         // If the mouse cursor is not on top of this widget, and this widget
         // was previously the hot widget, set the hot widget to -1
@@ -68,11 +90,50 @@ struct UiLibrary
         }
 
         // Draw our button regardless of what happens
-        DrawRectangleRec(bounds, GRAY);
-        DrawText(text.c_str(), bounds.x, bounds.y, 14, BLACK);
+        DrawRectangleRec(bounds, buttonColor);
+        DrawText(text.c_str(), bounds.x, bounds.y, 14, textColor);
 
         return result;
     }
+
+    bool CheckBox(int id, const std::string& text, Vector2 position, bool& state){
+
+        //Checkbox Size
+        float boxSize = 20.0f; 
+        Rectangle boxBounds = { position.x, position.y, boxSize, boxSize };
+
+        // Check hover
+        bool hovered = CheckCollisionPointRec(GetMousePosition(), boxBounds);
+
+        // Toggle state when clicked making it true and false and vice versa
+        if (hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        {
+            state = !state; // toggle
+        }
+
+        // Draw checkbox 
+        DrawRectangleLinesEx(boxBounds, 2, BLACK);
+
+        // Fill if checked
+        if (state)
+        {
+            DrawRectangle(boxBounds.x + 4, boxBounds.y + 4, boxSize - 8, boxSize - 8, GREEN);
+        }
+
+        // Change color when hovered
+        if (hovered)
+        {
+            DrawRectangleLinesEx(boxBounds, 2, LIGHTGRAY);
+        }
+
+        // Draw text
+        DrawText(text.c_str(), position.x + boxSize + 10, position.y + 2, 16, BLACK);
+
+        return state;
+
+
+    }
+
 };
 
 int main()
@@ -82,6 +143,9 @@ int main()
     SetTargetFPS(60);
 
     UiLibrary uiLibrary;
+
+    //initial setting of the autosave state
+    bool autosaveState = false;
 
     while (!WindowShouldClose())
     {
@@ -95,6 +159,11 @@ int main()
         {
             std::cout << "Hi!" << std::endl;
         }
+
+        //drawing checkbox
+        uiLibrary.CheckBox(2, "Enable autosave", {10, 70}, autosaveState);
+
+
         EndDrawing();
     }
 
