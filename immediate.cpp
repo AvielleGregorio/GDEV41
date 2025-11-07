@@ -139,6 +139,8 @@ struct UiLibrary
 int main()
 {
     int WINDOW_WIDTH = 800, WINDOW_HEIGHT = 600;
+
+    SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Immediate Mode");
     SetTargetFPS(60);
 
@@ -149,8 +151,8 @@ int main()
 
     while (!WindowShouldClose())
     {
-        ClearBackground(WHITE);
         BeginDrawing();
+        ClearBackground(WHITE);
         if (uiLibrary.Button(0, "Hello!", { 10, 10, 80, 40 }))
         {
             std::cout << "Hello!" << std::endl;
@@ -162,7 +164,6 @@ int main()
 
         //drawing checkbox
         uiLibrary.CheckBox(2, "Enable autosave", {10, 70}, autosaveState);
-
 
         EndDrawing();
     }
