@@ -70,6 +70,13 @@ struct Button : public UIComponent
     // Text displayed by the button
     std::string text;
 
+    std::vector<std::function<void()>> observers;
+
+    void AddObserver(const std::function<void()>& callback) 
+    {
+        observers.push_back(callback);
+    }
+
     // Draw
     void Draw() override
     {
@@ -84,7 +91,9 @@ struct Button : public UIComponent
         // Check if the mouse click position is within our bounds
         if (CheckCollisionPointRec(click_position, bounds))
         {
-            std::cout << "Hello!" << std::endl;
+            //std::cout << "Hello!" << std::endl;
+            for (auto& callback : observers)
+                callback();
             return true;
         }
 
@@ -140,6 +149,7 @@ struct UILibrary
 int main()
 {
     int WINDOW_WIDTH = 800, WINDOW_HEIGHT = 600;
+    SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Retained Mode");
     SetTargetFPS(60);
 
@@ -149,11 +159,13 @@ int main()
     Button button;
     button.text = "Hello!";
     button.bounds = { 120, 10, 80, 40 };
+    button.AddObserver([](){ std::cout << "Hello!" << std::endl; });
     ui_library.root_container.AddChild(&button);
 
     Button button2;
     button2.text = "Hi!";
     button2.bounds = { 210, 10, 80, 40 };
+    button2.AddObserver([](){ std::cout << "Hi!" << std::endl; });
     ui_library.root_container.AddChild(&button2);
 
     Label label;
@@ -165,8 +177,8 @@ int main()
     {
         ui_library.Update();
 
-        ClearBackground(WHITE);
         BeginDrawing();
+        ClearBackground(WHITE);
         ui_library.Draw();
         EndDrawing();
     }
