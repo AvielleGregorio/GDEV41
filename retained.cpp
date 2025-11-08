@@ -123,6 +123,58 @@ struct Label : public UIComponent
     }
 };
 
+struct CheckBox : public UIComponent
+{
+    std::string text;
+    bool checked = false;
+    std::vector<std::function<void(bool)>> observers;
+
+    void AddObserver(const std::function<void(bool)>& cb)
+    {
+        observers.push_back(cb);
+    }
+
+    void Draw() override
+    {
+        float boxSize = 20.0f;
+        Rectangle boxBounds = { bounds.x, bounds.y, boxSize, boxSize};
+
+        DrawRectangleLinesEx(boxBounds, 2, BLACK);
+
+        if (checked) 
+        {
+            DrawRectangle(boxBounds.x + 4, boxBounds.y + 4, boxSize - 8, boxSize - 8, GREEN);
+        }
+
+        DrawText(text.c_str(), bounds.x + boxSize + 10, bounds.y + 2, 16, BLACK);
+    }
+
+    bool HandleClick(Vector2 click_position) override
+    {
+        Rectangle boxBounds = { bounds.x, bounds.y, 20.0f, 20.0f};
+        
+        if (CheckCollisionPointRec(click_position, boxBounds))
+        {
+            checked = !checked;
+
+            for (auto& cb : observers)
+                cb(checked);
+            
+            return true;
+        }
+        return false;
+    }
+
+    void SetChecked(bool value)
+    {
+        checked = value;
+        for (auto& cb : observers)
+            cb(checked);
+    }
+
+    bool GetChecked() const {return checked;}
+};
+
 // Struct to encapsulate our UI library
 struct UILibrary
 {
@@ -172,6 +224,14 @@ int main()
     label.text = "This is a label";
     label.bounds = { 10, 20, 100, 40 };
     ui_library.root_container.AddChild(&label);
+
+    CheckBox checkbox;
+    checkbox.text = "Enable Autosave";
+    checkbox.bounds = {10, 70, 20, 20};
+    checkbox.checked = false;
+    // checkbox.SetChecked(true);
+    checkbox.AddObserver([](bool state){});
+    ui_library.root_container.AddChild(&checkbox);
 
     while (!WindowShouldClose())
     {
