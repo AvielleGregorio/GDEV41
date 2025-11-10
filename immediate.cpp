@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 // Struct to encapsulate our UI library
 struct UiLibrary
 {
@@ -17,7 +19,7 @@ struct UiLibrary
 
     // Creates a button with the specified text and bounds
     // Returns true if this button was clicked in this frame
-    bool Button(int id, const std::string& text, const Rectangle& bounds)
+    bool Button(int id, const string& text, const Rectangle& bounds)
     {
         bool result = false;
 
@@ -91,12 +93,12 @@ struct UiLibrary
 
         // Draw our button regardless of what happens
         DrawRectangleRec(bounds, buttonColor);
-        DrawText(text.c_str(), bounds.x, bounds.y, 14, textColor);
+        DrawText(text.c_str(), bounds.x + 7, bounds.y + (bounds.height/2) - 7, 14, textColor);
 
         return result;
     }
 
-    bool CheckBox(int id, const std::string& text, Vector2 position, bool& state){
+    bool CheckBox(int id, const string& text, Vector2 position, bool& state){
 
         //Checkbox Size
         float boxSize = 20.0f; 
@@ -138,6 +140,7 @@ struct UiLibrary
 
 int main()
 {
+    
     int WINDOW_WIDTH = 800, WINDOW_HEIGHT = 600;
 
     SetConfigFlags(FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);
@@ -147,23 +150,33 @@ int main()
     UiLibrary uiLibrary;
 
     //initial setting of the autosave state
-    bool autosaveState = false;
+    bool lockScreenSize = false;
 
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(WHITE);
-        if (uiLibrary.Button(0, "Hello!", { 10, 10, 80, 40 }))
+        if (uiLibrary.Button(0, "800x600", { 10, 10, 80, 40 }))
         {
-            std::cout << "Hello!" << std::endl;
+            if (!lockScreenSize) {
+                SetWindowSize(800, 600);
+            }
         }
-        if (uiLibrary.Button(1, "Hi!", { 100, 10, 80, 40 }))
+        if (uiLibrary.Button(1, "1280x720", { 100, 10, 80, 40 }))
         {
-            std::cout << "Hi!" << std::endl;
+            if (!lockScreenSize) {
+                SetWindowSize(1280, 720);
+            }
+        }
+        if (uiLibrary.Button(2, "1366x768", { 190, 10, 80, 40 }))
+        {
+            if (!lockScreenSize) {
+                SetWindowSize(1366, 768);
+            }
         }
 
         //drawing checkbox
-        uiLibrary.CheckBox(2, "Enable autosave", {10, 70}, autosaveState);
+        uiLibrary.CheckBox(2, "Lock screen size", {10, 70}, lockScreenSize);
 
         EndDrawing();
     }
