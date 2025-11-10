@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <functional>
+
+using namespace std;
 
 // Generic UI component
 struct UIComponent
@@ -24,7 +27,7 @@ struct UIComponent
 // Generic UI component that can contain other UI components as children
 struct UIContainer : public UIComponent
 {
-    std::vector<UIComponent*> children;
+    vector<UIComponent*> children;
 
     // Adds a child to the container
     void AddChild(UIComponent* child)
@@ -68,11 +71,11 @@ struct UIContainer : public UIComponent
 struct Button : public UIComponent
 {
     // Text displayed by the button
-    std::string text;
+    string text;
 
-    std::vector<std::function<void()>> observers;
+    vector<function<void()>> observers;
 
-    void AddObserver(const std::function<void()>& callback) 
+    void AddObserver(const function<void()>& callback) 
     {
         observers.push_back(callback);
     }
@@ -91,7 +94,6 @@ struct Button : public UIComponent
         // Check if the mouse click position is within our bounds
         if (CheckCollisionPointRec(click_position, bounds))
         {
-            //std::cout << "Hello!" << std::endl;
             for (auto& callback : observers)
                 callback();
             return true;
@@ -105,7 +107,7 @@ struct Button : public UIComponent
 struct Label : public UIComponent
 {
     // Text to be displayed
-    std::string text;
+    string text;
 
     // Draw
     void Draw() override
@@ -125,11 +127,11 @@ struct Label : public UIComponent
 
 struct CheckBox : public UIComponent
 {
-    std::string text;
+    string text;
     bool checked = false;
-    std::vector<std::function<void(bool)>> observers;
+    vector<function<void(bool)>> observers;
 
-    void AddObserver(const std::function<void(bool)>& cb)
+    void AddObserver(const function<void(bool)>& cb)
     {
         observers.push_back(cb);
     }
@@ -208,31 +210,30 @@ int main()
     UILibrary ui_library;
     ui_library.root_container.bounds = { 10, 10, 600, 500 };
 
-    Button button;
-    button.text = "Hello!";
-    button.bounds = { 120, 10, 80, 40 };
-    button.AddObserver([](){ std::cout << "Hello!" << std::endl; });
-    ui_library.root_container.AddChild(&button);
-
-    Button button2;
-    button2.text = "Hi!";
-    button2.bounds = { 210, 10, 80, 40 };
-    button2.AddObserver([](){ std::cout << "Hi!" << std::endl; });
-    ui_library.root_container.AddChild(&button2);
-
-    Label label;
-    label.text = "This is a label";
-    label.bounds = { 10, 20, 100, 40 };
-    ui_library.root_container.AddChild(&label);
-
+    
     CheckBox checkbox;
-    checkbox.text = "Enable Autosave";
+    checkbox.text = "Lock screen size";
     checkbox.bounds = {10, 70, 20, 20};
-    checkbox.checked = false;
-    // checkbox.SetChecked(true);
-    checkbox.AddObserver([](bool state){});
+    checkbox.SetChecked(false);
     ui_library.root_container.AddChild(&checkbox);
 
+    Button button_s;
+    button_s.text = "800x600";
+    button_s.bounds = { 10, 100, 80, 40 };
+    button_s.AddObserver([&checkbox](){ if (!checkbox.checked) {SetWindowSize(800, 600);} });
+    ui_library.root_container.AddChild(&button_s);
+    Button button_m;
+    button_m.text = "1280x720";
+    button_m.bounds = { 100, 100, 80, 40 };
+    button_m.AddObserver([&checkbox](){ if (!checkbox.checked) {SetWindowSize(1280, 720);} });
+    ui_library.root_container.AddChild(&button_m);
+    Button button_l;
+    button_l.text = "1366x768";
+    button_l.bounds = { 190, 100, 80, 40 };
+    button_l.AddObserver([&checkbox](){ if (!checkbox.checked) {SetWindowSize(1366, 768);} });
+    ui_library.root_container.AddChild(&button_l);
+    
+    
     while (!WindowShouldClose())
     {
         ui_library.Update();
