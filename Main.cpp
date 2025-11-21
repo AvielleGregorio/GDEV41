@@ -6,6 +6,10 @@ const int WINDOW_HEIGHT = 720;
 const float FPS = 60;
 const float TIMESTEP = 1/FPS;
 
+const int MAX_BOOKS = 10;
+const float BOOK_RESPAWN_DELAY = 3.0f;
+const float BOOK_PICKUP_RADIUS = 35.0f;
+
 // Boolean to check for mouse dragging
 bool isDragging = false;
 Vector2 dragStart = {0,0};
@@ -34,28 +38,56 @@ struct Flerken {
     Vector2 position;
     Vector2 velocity;
     bool isActive = false;
+    // To be replaced when Sprite
+    // Texture playerTexture;
+    // Rectangle textureSource;
 };
 
 struct Ghost {
     Vector2 position;
     Vector2 velocity;
+    // To be replaced when Sprite
+    // Texture playerTexture;
+    // Rectangle textureSource;
 };
 
 struct Shadow {
     Vector2 position;
     Vector2 velocity;
+    // To be replaced when Sprite
+    // Texture playerTexture;
+    // Rectangle textureSource;
 };
 
 struct Spirit{
     Vector2 position;
     Vector2 velocity;
+    // To be replaced when Sprite
+    // Texture playerTexture;
+    // Rectangle textureSource;
 };
 
 struct Book {
-
+    Vector2 position;
+    bool isActive;
+    float respawnCooldown;
+    Color color = SKYBLUE;
+    // To be replaced when Sprite
+    // Texture playerTexture;
+    // Rectangle textureSource;
 };
 
+Vector2 SpawnRandomBook() {
+    float margin = 50.0f;
 
+    Vector2 position;
+    position.x = GetRandomValue(margin, WINDOW_WIDTH - margin);
+    position.y = GetRandomValue(margin, WINDOW_HEIGHT - margin);
+
+    return position;
+}
+
+Book books[MAX_BOOKS];
 
 int main() {
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -64,6 +96,12 @@ int main() {
 
     Player librarian;
     Flerken flerken;
+
+    for (int i = 0; i < MAX_BOOKS; i ++) {
+        books[i].position = SpawnRandomBook();
+        books[i].isActive = true;
+        books[i].respawnCooldown = 0;
+    }
     
     float accumulator = 0;
 
@@ -115,7 +153,7 @@ int main() {
             Vector2 friction = Vector2Scale(librarian.velocity, -(resistance / librarian.mass) * TIMESTEP);
             librarian.velocity = Vector2Add(librarian.velocity, friction);
             librarian.position = Vector2Add(librarian.position, Vector2Scale(librarian.velocity, TIMESTEP));
-            if (Vector2Length(librarian.velocity) < 0.2f) {
+            if (Vector2Length(librarian.velocity) < 0.9f) {
                 librarian.velocity = Vector2Zero();
             }
 
@@ -131,9 +169,26 @@ int main() {
             if (librarian.position.y - librarian.size < 0 || librarian.position.y + librarian.size >= WINDOW_HEIGHT) {
                 librarian.velocity.y *= -1;
             }
+            
+            for (int i = 0; i < MAX_BOOKS; i++) {
+                if (books[i].isActive) {
+                    float dist = Vector2Distance(librarian.position, books[i].position);
+                    // Libririan picks up book
+                    if (dist < BOOK_PICKUP_RADIUS) {
+                        books[i].isActive = false;
+                        books[i].respawnCooldown = BOOK_RESPAWN_DELAY;
+                    }
+                } else {
+                    // Cooldown respawn timer
+                    books[i].respawnCooldown -= deltaTime;
+                    if (books[i].respawnCooldown <= 0) {
+                        books[i].position = SpawnRandomBook();
+                        books[i].isActive = true;
+                    }
+                }
+            }
 
         }
-
 
 
 
@@ -143,6 +198,11 @@ int main() {
         BeginDrawing();
         ClearBackground(BLACK);
 
+        for (int i = 0; i < MAX_BOOKS; i++) {
+            if (books[i].isActive) {
+                DrawRectangleV(books[i].position, {10, 30}, books[i].color);
+            }
+        }
         DrawCircleV(librarian.position, librarian.size, librarian.color);
 
         if (isDragging) {
