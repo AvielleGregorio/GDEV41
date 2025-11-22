@@ -24,7 +24,7 @@ struct Player {
     int size = 30;
     int speed = 200;
     Color color = LIME;
-    float mass = 2.0f;
+    float mass = 5.0f;
     float inverse_mass = 1/mass;
     Vector2 acceleration = Vector2Zero();
     Vector2 velocity = Vector2Zero();
@@ -37,7 +37,10 @@ struct Player {
 struct Flerken {
     // Set the Flerken Bullet
     Vector2 position;
-    Vector2 velocity;
+    Vector2 velocity = Vector2Zero();
+    int size = 20;
+    float speed = 800;
+    float mass = 2.0f;
     bool isActive = false;
     // To be replaced when Sprite
     // Texture playerTexture;
@@ -119,7 +122,7 @@ int main() {
     SetTargetFPS(FPS);
 
     Player librarian;
-    Flerken flerken;
+    Flerken flerken{};
 
     std::vector<Book> books;
     for (int i = 0; i < MAX_BOOKS; i ++) {
@@ -137,6 +140,20 @@ int main() {
     while (!WindowShouldClose()) {
         // Code Starts here
         float deltaTime = GetFrameTime();
+
+        if (!flerken.isActive) {
+            // Flerken Control
+            if (IsKeyPressed(KEY_SPACE)) {
+                flerken.position = librarian.position;
+                Vector2 mousePos = GetMousePosition();
+
+                Vector2 flerkenDir = Vector2Normalize(Vector2Subtract(mousePos, librarian.position));
+
+                // LAUNCH FLERKEN
+                flerken.velocity = Vector2Scale(flerkenDir, flerken.speed);
+                flerken.isActive = true;
+            }
+        }
 
         // Mouse Input
         if (Vector2Length(librarian.velocity) < 0.7f) {
@@ -177,13 +194,34 @@ int main() {
         accumulator += deltaTime;
         while (accumulator >= TIMESTEP) {
             float resistance = 0.6f;
-            // Librarian Bounding Physics
+            // Librarian Physics
             librarian.velocity = Vector2Add(librarian.velocity, Vector2Scale(librarian.acceleration, TIMESTEP));
             Vector2 friction = Vector2Scale(librarian.velocity, -(resistance / librarian.mass) * TIMESTEP);
             librarian.velocity = Vector2Add(librarian.velocity, friction);
             librarian.position = Vector2Add(librarian.position, Vector2Scale(librarian.velocity, TIMESTEP));
             if (Vector2Length(librarian.velocity) < 0.9f) {
                 librarian.velocity = Vector2Zero();
+            }
+
+            // Flerken Physics
+            if (flerken.isActive) {
+                DrawCircleV(flerken.position, flerken.size, ORANGE);
+                flerken.position = Vector2Add(flerken.position, Vector2Scale(flerken.velocity, TIMESTEP));
+                
+                if (flerken.position.x - flerken.size <= 0 || flerken.position.x + flerken.size >= WINDOW_WIDTH) {
+                    flerken.velocity.x *= -1;
+                }
+                
+                if (flerken.position.y - flerken.size < 0 || flerken.position.y + flerken.size >= WINDOW_HEIGHT) {
+                    flerken.velocity.y *= -1;
+                }
+
+                Vector2 flerkenFriction = Vector2Scale(flerken.velocity, -(resistance / flerken.mass) * TIMESTEP);
+                flerken.velocity = Vector2Add(flerken.velocity, flerkenFriction);
+                if (Vector2Length(flerken.velocity) < 1.0f) {
+                    flerken.isActive = false;       // Keep this muna; I'll implement that librarian can "recall" flerken
+                }
+
             }
 
             accumulator -= TIMESTEP;
@@ -193,11 +231,13 @@ int main() {
             if (librarian.position.x - librarian.size <= 0 || librarian.position.x + librarian.size >= WINDOW_WIDTH) {
                 librarian.velocity.x *= -1;
             }
+            
 
             // Y-Plane Boundary
             if (librarian.position.y - librarian.size < 0 || librarian.position.y + librarian.size >= WINDOW_HEIGHT) {
                 librarian.velocity.y *= -1;
             }
+            
             
             for (Book &b : books) {
                 // If books is collected, start cooldown timer
@@ -217,7 +257,10 @@ int main() {
                 }
             }
 
+
         }
+
+
 
 
 
@@ -233,6 +276,7 @@ int main() {
             }
         }
         DrawCircleV(librarian.position, librarian.size, librarian.color);
+        
 
         if (isDragging) {
             DrawLineEx(dragStart, dragEnd, 2.0f, WHITE);
