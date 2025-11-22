@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <raymath.h>
+#include <vector>
 
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
@@ -68,14 +69,23 @@ struct Spirit{
 };
 
 struct Book {
-    Vector2 position;
-    bool isActive;
-    float respawnCooldown;
+    Vector2 center;                 // Center position of the book
+    Vector2 size;         // Width and height (for now)
+    bool isActive;                  
+    float respawnCooldown;          // Timer before the book can spawn back again
     Color color = SKYBLUE;
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
 };
+
+void DrawCenteredRectangle(Vector2 center, Vector2 size, Color color) {
+    Vector2 topLeft = {
+        center.x - size.x/2,
+        center.y - size.y/2
+    };
+    DrawRectangleV(topLeft, size, color);
+}
 
 Vector2 SpawnRandomBook() {
     float margin = 50.0f;
@@ -87,7 +97,21 @@ Vector2 SpawnRandomBook() {
     return position;
 }
 
-Book books[MAX_BOOKS];
+bool CheckLibrarianBookCollision(Vector2 playerPos, float size, Vector2 bookCenter, Vector2 bookSize) {
+    // Compute half-size
+    Vector2 half = {bookSize.x/2, bookSize.y/2};
+
+    // Find closest point on book to player
+    float closestX = Clamp(playerPos.x, bookCenter.x - half.x, bookCenter.x + half.x);
+    float closestY = Clamp(playerPos.y, bookCenter.y - half.y, bookCenter.y + half.y);
+
+    // Distance from player to closest point
+    float distX = playerPos.x - closestX;
+    float distY = playerPos.y - closestY;
+
+    return (distX * distX + distY * distY) <= (size * size);
+}
+
 
 int main() {
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -97,10 +121,14 @@ int main() {
     Player librarian;
     Flerken flerken;
 
+    std::vector<Book> books;
     for (int i = 0; i < MAX_BOOKS; i ++) {
-        books[i].position = SpawnRandomBook();
-        books[i].isActive = true;
-        books[i].respawnCooldown = 0;
+        Book b;
+        b.center = SpawnRandomBook();
+        b.size = {25,30};
+        b.isActive = true;
+        b.respawnCooldown = 0;
+        books.push_back(b);
     }
     
     float accumulator = 0;
@@ -149,6 +177,7 @@ int main() {
         accumulator += deltaTime;
         while (accumulator >= TIMESTEP) {
             float resistance = 0.6f;
+            // Librarian Bounding Physics
             librarian.velocity = Vector2Add(librarian.velocity, Vector2Scale(librarian.acceleration, TIMESTEP));
             Vector2 friction = Vector2Scale(librarian.velocity, -(resistance / librarian.mass) * TIMESTEP);
             librarian.velocity = Vector2Add(librarian.velocity, friction);
@@ -170,21 +199,21 @@ int main() {
                 librarian.velocity.y *= -1;
             }
             
-            for (int i = 0; i < MAX_BOOKS; i++) {
-                if (books[i].isActive) {
-                    float dist = Vector2Distance(librarian.position, books[i].position);
-                    // Libririan picks up book
-                    if (dist < BOOK_PICKUP_RADIUS) {
-                        books[i].isActive = false;
-                        books[i].respawnCooldown = BOOK_RESPAWN_DELAY;
+            for (Book &b : books) {
+                // If books is collected, start cooldown timer
+                if (!b.isActive) {
+                    b.respawnCooldown -= deltaTime;
+                    if (b.respawnCooldown <= 0) {
+                        b.center = SpawnRandomBook();
+                        b.isActive = true;
                     }
-                } else {
-                    // Cooldown respawn timer
-                    books[i].respawnCooldown -= deltaTime;
-                    if (books[i].respawnCooldown <= 0) {
-                        books[i].position = SpawnRandomBook();
-                        books[i].isActive = true;
-                    }
+                    continue;
+                }
+
+                // Check for librarian collision
+                if (CheckLibrarianBookCollision(librarian.position, librarian.size, b.center, b.size)) {
+                    b.isActive = false;
+                    b.respawnCooldown = BOOK_RESPAWN_DELAY;
                 }
             }
 
@@ -198,9 +227,9 @@ int main() {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        for (int i = 0; i < MAX_BOOKS; i++) {
-            if (books[i].isActive) {
-                DrawRectangleV(books[i].position, {10, 30}, books[i].color);
+        for (Book &b : books) {
+            if (b.isActive) {
+                DrawCenteredRectangle(b.center, b.size, b.color);
             }
         }
         DrawCircleV(librarian.position, librarian.size, librarian.color);
