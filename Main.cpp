@@ -11,6 +11,11 @@ const int MAX_BOOKS = 10;
 const float BOOK_RESPAWN_DELAY = 3.0f;
 const float BOOK_PICKUP_RADIUS = 35.0f;
 
+const int MAX_GHOSTS = 6;
+const float GHOST_RESPAWN_DELAY = 3.0f;
+
+int ghostCounter;
+
 // Boolean to check for mouse dragging
 bool isDragging = false;
 Vector2 dragStart = {0,0};
@@ -53,6 +58,12 @@ struct Ghost {
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
+    //Temporary Ghost Dimensions
+    Vector2 size;
+    float speed = 100;
+    float mass = 2.0f;
+    bool isActive; 
+    float respawnCooldown;  
 };
 
 struct Shadow {
@@ -82,12 +93,64 @@ struct Book {
     // Rectangle textureSource;
 };
 
+struct UIManager {
+    int booksCollected = 0;
+    float gameTimer = 0.0f;
+    int playerHealth = 100;
+
+    void Update(float deltaTime) {
+        gameTimer += deltaTime;
+    }
+
+    void Draw() { //Drawing the UI elements itself
+        // Draw the book counter
+        DrawText(TextFormat("Books: %d", booksCollected), 20, 20, 22, YELLOW);
+
+        // Draw the timer
+        DrawText(TextFormat("Time: %.2f", gameTimer), 20, 60, 22, SKYBLUE);
+
+        // Draw the Health Bar
+        int barX = 20;
+        int barY = 100;
+        int barWidth = 200;
+        int barHeight = 25;
+
+        DrawText("HP", 20, 100, 22, GREEN);
+
+        DrawRectangle(barX + 40, barY, barWidth, barHeight, LIGHTGRAY);
+        DrawRectangle(barX + 40, barY, playerHealth * 2, barHeight, GREEN); 
+
+    }
+};
+
+
+
+
 void DrawCenteredRectangle(Vector2 center, Vector2 size, Color color) {
     Vector2 topLeft = {
         center.x - size.x/2,
         center.y - size.y/2
     };
     DrawRectangleV(topLeft, size, color);
+}
+
+Vector2 SpawnRandomGhost(int ghostCount) {
+    Vector2 position;
+
+    float ghostPositionX = GetRandomValue(-10, -1);
+    float ghostPositionAlternateX = GetRandomValue(1285, 1300);
+    float ghostPositionY = GetRandomValue(0, 600);
+
+    //Since ghosts should be coming from either side, I will spread them like so
+    if(ghostCount % 2 == 0){
+        position.x = ghostPositionX;
+        position.y = ghostPositionY;
+    }else{
+        position.x = ghostPositionAlternateX;
+        position.y = ghostPositionY;
+    }
+
+    return position;
 }
 
 Vector2 SpawnRandomBook() {
@@ -123,6 +186,7 @@ int main() {
 
     Player librarian;
     Flerken flerken{};
+    UIManager ui;
 
     std::vector<Book> books;
     for (int i = 0; i < MAX_BOOKS; i ++) {
@@ -133,6 +197,16 @@ int main() {
         b.respawnCooldown = 0;
         books.push_back(b);
     }
+
+    std::vector<Ghost> ghosts;
+    for (int i = 0; i < MAX_GHOSTS; i ++) {
+        Ghost g;
+        g.position = SpawnRandomGhost(ghostCounter);
+        g.size = {35,40};
+        g.isActive = true;
+        g.respawnCooldown = 0;
+        ghosts.push_back(g);
+    }
     
     float accumulator = 0;
 
@@ -140,6 +214,8 @@ int main() {
     while (!WindowShouldClose()) {
         // Code Starts here
         float deltaTime = GetFrameTime();
+        // Updates UI
+        ui.Update(deltaTime); 
 
         if (!flerken.isActive) {
             // Flerken Control
@@ -254,7 +330,26 @@ int main() {
                 if (CheckLibrarianBookCollision(librarian.position, librarian.size, b.center, b.size)) {
                     b.isActive = false;
                     b.respawnCooldown = BOOK_RESPAWN_DELAY;
+                    ui.booksCollected += 1;
                 }
+            }
+
+            //fact check because sleepy avielle wrote and copied the above HDSAHDAHDSAH
+
+            for (Ghost &g : ghosts) {
+                // If books is collected, start cooldown timer
+                if (g.isActive) {
+                    g.respawnCooldown -= deltaTime;
+                    if (g.respawnCooldown <= 0) {
+                        g.position = SpawnRandomGhost(ghostCounter);
+                        ghostCounter += 1;
+                        g.isActive = true;
+                    }
+                    continue;
+                }
+
+                // Check for ghost collision and in here is where we subtract the health
+                // inactive ghost if player hit, otherwise keep moving until out of spawning bounds, then despawn
             }
 
 
@@ -282,6 +377,9 @@ int main() {
             DrawLineEx(dragStart, dragEnd, 2.0f, WHITE);
         }
 
+        //Draw the UI
+        ui.Draw();
+
         EndDrawing();
     
     }
@@ -291,3 +389,15 @@ int main() {
 
 
 // Jai's Compile Code (ignore): clang++ Main.cpp libraylib.a -std=c++17 \-framework Cocoa -framework IOKit -framework CoreVideo -framework OpenGL -framework Foundation -o finalproject
+// Avielle Raylib Starter Codes:
+// C:\raylib\w64devkit\w64devkit.exe
+// cd Documents/"School Stuff"/"[Y4] First Semester 2025"/"GDEV 41"/GDEV41
+// g++ Main.cpp -o out -I raylib/ -L raylib/ -lraylib -lopengl32 -lgdi32 -lwinmm
+
+
+//avielle dumpy
+//ghost 
+//randomly spawning ghost out of bounds who slowly come in in any direction (grey)
+//randomly get position of ghost and drop a ectoplasm (red circle)
+//collision for red circle (mimick books)
+//collision for ghost (AABB) then harm
