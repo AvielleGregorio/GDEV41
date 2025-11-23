@@ -9,6 +9,7 @@ const float FPS = 60;
 const float TIMESTEP = 1/FPS;
 
 const int MAX_BOOKS = 10;
+const int SCORE_BOOKS = 10;
 const float BOOK_RESPAWN_DELAY = 3.0f;
 const float BOOK_PICKUP_RADIUS = 35.0f;
 
@@ -116,6 +117,7 @@ struct UIManager {
     int booksCollected = 0;
     float gameTimer = 0.0f;
     int playerHealth = 100;
+    int playerScore = 0;
 
     void Update(float deltaTime) {
         gameTimer += deltaTime;
@@ -138,6 +140,9 @@ struct UIManager {
 
         DrawRectangle(barX + 40, barY, barWidth, barHeight, LIGHTGRAY);
         DrawRectangle(barX + 40, barY, playerHealth * 2, barHeight, GREEN); 
+
+        //Draw Score
+        DrawText(TextFormat("Score: %d", playerScore), 20, 140, 22, WHITE);
 
     }
 };
@@ -394,6 +399,7 @@ int main() {
                     b.isActive = false;
                     b.respawnCooldown = BOOK_RESPAWN_DELAY;
                     ui.booksCollected += 1;
+                    ui.playerScore += SCORE_BOOKS;
                 }
 
             }
