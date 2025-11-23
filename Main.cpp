@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <vector>
+#include <iostream>
 
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
@@ -11,10 +12,11 @@ const int MAX_BOOKS = 10;
 const float BOOK_RESPAWN_DELAY = 3.0f;
 const float BOOK_PICKUP_RADIUS = 35.0f;
 
-const int MAX_GHOSTS = 6;
-const float GHOST_RESPAWN_DELAY = 3.0f;
-
-int ghostCounter;
+const int MAX_GHOSTS = 8;
+const float GHOST_RESPAWN_DELAY = 3.0f; //previously used for uniform respawn
+float GHOST_RESPAWN_MIN = 0.5f; //used for random respawn
+float GHOST_RESPAWN_MAX = 3.0f;
+int ghostCounter = 0;
 
 // Boolean to check for mouse dragging
 bool isDragging = false;
@@ -124,8 +126,6 @@ struct UIManager {
 };
 
 
-
-
 void DrawCenteredRectangle(Vector2 center, Vector2 size, Color color) {
     Vector2 topLeft = {
         center.x - size.x/2,
@@ -178,6 +178,21 @@ bool CheckLibrarianBookCollision(Vector2 playerPos, float size, Vector2 bookCent
     return (distX * distX + distY * distY) <= (size * size);
 }
 
+bool CheckLibrarianGhostCollision(Vector2 playerPos, float size, Vector2 ghostPosition, Vector2 ghostSize) {
+    // Compute half-size
+    Vector2 half = {ghostSize.x/2, ghostSize.y/2};
+
+    // Find closest point on book to player
+    float closestX = Clamp(playerPos.x, ghostPosition.x - half.x, ghostPosition.x + half.x);
+    float closestY = Clamp(playerPos.y, ghostPosition.y - half.y, ghostPosition.y + half.y);
+
+    // Distance from player to closest point
+    float distX = playerPos.x - closestX;
+    float distY = playerPos.y - closestY;
+
+    return (distX * distX + distY * distY) <= (size * size);
+}
+
 
 int main() {
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -204,7 +219,16 @@ int main() {
         g.position = SpawnRandomGhost(ghostCounter);
         g.size = {35,40};
         g.isActive = true;
-        g.respawnCooldown = 0;
+        g.respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1000, GHOST_RESPAWN_MAX * 1000) / 1000.0f;
+
+        if (g.position.x < 0) {
+            g.velocity = { g.speed, 0 }; // Move right
+        } else {
+            g.velocity = { -g.speed, 0 }; // Move left
+        }
+
+        ghostCounter++;
+
         ghosts.push_back(g);
     }
     
@@ -332,33 +356,58 @@ int main() {
                     b.respawnCooldown = BOOK_RESPAWN_DELAY;
                     ui.booksCollected += 1;
                 }
+
             }
 
             //fact check because sleepy avielle wrote and copied the above HDSAHDAHDSAH
 
             for (Ghost &g : ghosts) {
-                // If books is collected, start cooldown timer
                 if (g.isActive) {
-                    g.respawnCooldown -= deltaTime;
-                    if (g.respawnCooldown <= 0) {
+
+                    // Ghost moves straight across the screen from where they spawned
+                    g.position = Vector2Add(g.position, Vector2Scale(g.velocity, TIMESTEP));
+
+                    // Collision with librarian
+                    if (CheckLibrarianGhostCollision(librarian.position, librarian.size, g.position, g.size)) {
+                        // Damage player later
+                        ui.playerHealth--;
+                        g.isActive = false;
+                        g.respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN*1000, GHOST_RESPAWN_MAX*1000) / 1000.0f;
+                        continue;   // skip movement/despawn check for this frame
+                    }
+
+                    // Despawn once off-screen on opposite side, either left or right depending where the ghost came from
+                    if (g.position.x < -100 || g.position.x > WINDOW_WIDTH + 100) {
+                        g.isActive = false;
+                        g.respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1000, GHOST_RESPAWN_MAX * 1000) / 1000.0f;
+                        ghostCounter--;
+                        std::cout << "ghost despawned!";
+                    }
+
+                } else {
+                    // ghost respawn cool down
+                    g.respawnCooldown -= TIMESTEP;
+
+                    // Respawn when ready and if max ghosts not hit
+                    if (g.respawnCooldown <= 0 && MAX_GHOSTS >= ghostCounter) {
                         g.position = SpawnRandomGhost(ghostCounter);
-                        ghostCounter += 1;
+
+                        // Assign direction again depending on side spawned
+                        if (g.position.x < 0) {
+                            g.velocity = { g.speed, 0 };  // Move right acorss the screen
+                        } else {
+                            g.velocity = { -g.speed, 0 }; // Move left across the screen
+                        }
+                        std::cout << "ghost spawned";
+                        ghostCounter++;
                         g.isActive = true;
                     }
-                    continue;
                 }
 
-                // Check for ghost collision and in here is where we subtract the health
-                // inactive ghost if player hit, otherwise keep moving until out of spawning bounds, then despawn
             }
 
 
         }
-
-
-
-
-
 
 
         // RENDERING
@@ -370,8 +419,15 @@ int main() {
                 DrawCenteredRectangle(b.center, b.size, b.color);
             }
         }
+
         DrawCircleV(librarian.position, librarian.size, librarian.color);
         
+        for (Ghost &g : ghosts) {
+            if (g.isActive) {
+                DrawRectangleV(g.position, g.size, LIGHTGRAY);
+            }
+        }
+
 
         if (isDragging) {
             DrawLineEx(dragStart, dragEnd, 2.0f, WHITE);
