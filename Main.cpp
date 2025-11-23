@@ -12,12 +12,15 @@ const int MAX_BOOKS = 10;
 const float BOOK_RESPAWN_DELAY = 3.0f;
 const float BOOK_PICKUP_RADIUS = 35.0f;
 
-//Ghosts are the harmful entities, touching them reduces the healthbar
+//Ghosts are the harmful entities, touching them reduces the healthbar, and they drop ectoplasm
 const int MAX_GHOSTS = 6;
 const float GHOST_RESPAWN_DELAY = 3.0f; //previously used for uniform respawn
 float GHOST_RESPAWN_MIN = 0.5f; //used for random respawn
 float GHOST_RESPAWN_MAX = 3.0f;
 int ghostCounter = 0;
+int ghostDamage = 10;
+int ectoplasmDamage = 5;
+int MAX_ECTOPLASM = 4;
 
 // Boolean to check for mouse dragging
 bool isDragging = false;
@@ -67,6 +70,19 @@ struct Ghost {
     float mass = 2.0f;
     bool isActive; 
     float respawnCooldown;  
+};
+
+struct Ectoplasm {
+    Vector2 position;
+    // To be replaced when Sprite
+    // Texture playerTexture;
+    // Rectangle textureSource;
+    //Temporary Ghost Dimensions
+    float size;
+    float speed = 100;
+    bool isActive; 
+    float timeOnScreen = 6.0f;
+    Color color = RED;
 };
 
 struct Shadow {
@@ -194,6 +210,10 @@ bool CheckLibrarianGhostCollision(Vector2 playerPos, float size, Vector2 ghostPo
     return (distX * distX + distY * distY) <= (size * size);
 }
 
+bool CheckLibrarianEctoplasmCollision(Vector2 playerPos, float size, Vector2 ectoPosition, float ectoSize) {
+    return Vector2DistanceSqr(playerPos, ectoPosition) <= (size + ectoSize)*(size + ectoSize);
+}
+
 //Oke, i know this is redundant, but its mostly for readability sake
 bool CheckFlerkenGhostCollision(Vector2 flerkenPos, float size, Vector2 ghostPosition, Vector2 ghostSize) {
     // Compute half-size
@@ -248,6 +268,8 @@ int main() {
 
         ghosts.push_back(g);
     }
+
+    std::vector<Ectoplasm> ectoplasms;
     
     float accumulator = 0;
 
@@ -382,6 +404,19 @@ int main() {
                     // Ghost moves straight across the screen from where they spawned
                     g.position = Vector2Add(g.position, Vector2Scale(g.velocity, TIMESTEP));
 
+                    // Random ectoplasm drop
+                    if (ectoplasms.size() < MAX_ECTOPLASM) {
+                        int chance = GetRandomValue(0, 1000);  //chance of ectoplasm per frame
+                        if (chance < 2) {                      
+                            Ectoplasm e;
+                            e.position = g.position;
+                            e.size = 20;
+                            e.isActive = true;
+                            e.timeOnScreen = 6.0f;
+                            ectoplasms.push_back(e);
+                        }
+                    }
+
                     //Collision with Flerken
                     if(CheckFlerkenGhostCollision(flerken.position, flerken.size, g.position, g.size)){
                         //no damage player
@@ -392,17 +427,16 @@ int main() {
 
                     // Collision with librarian
                     if (CheckLibrarianGhostCollision(librarian.position, librarian.size, g.position, g.size)) {
-                        ui.playerHealth--;
+                        ui.playerHealth -= ghostDamage;
                         g.isActive = false;
                         g.respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN*1000, GHOST_RESPAWN_MAX*1000) / 1000.0f;
                         continue;   // skip movement/despawn check for this frame
-                    }
+                    }                    
 
                     // Despawn once off-screen on opposite side, either left or right depending where the ghost came from
                     if (g.position.x < -100 || g.position.x > WINDOW_WIDTH + 100) {
                         g.isActive = false;
                         g.respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1000, GHOST_RESPAWN_MAX * 1000) / 1000.0f;
-                        ghostCounter--;
                         std::cout << "ghost despawned!";
                     }
 
@@ -411,7 +445,7 @@ int main() {
                     g.respawnCooldown -= TIMESTEP;
 
                     // Respawn when ready and if max ghosts not hit
-                    if (g.respawnCooldown <= 0 && MAX_GHOSTS >= ghostCounter) {
+                    if (g.respawnCooldown <= 0) {
                         g.position = SpawnRandomGhost(ghostCounter);
 
                         // Assign direction again depending on side spawned
@@ -424,6 +458,29 @@ int main() {
                         ghostCounter++;
                         g.isActive = true;
                     }
+                }
+
+            }
+
+            //checking the ectoplasms despawn
+            for (int i = ectoplasms.size() - 1; i >= 0; i--) {
+                Ectoplasm &e = ectoplasms[i];
+                //checks ectoplasms despawn
+                ectoplasms[i].timeOnScreen -= TIMESTEP;
+
+                if (ectoplasms[i].timeOnScreen <= 0) {
+                    
+                    ectoplasms.erase(ectoplasms.begin() + i);
+                }
+
+                //checks collision with libaraian (circle to circle)
+                if (e.isActive && CheckLibrarianEctoplasmCollision(librarian.position, librarian.size, e.position, e.size)) {
+                    // Deal damage to the player
+                    ui.playerHealth -= ectoplasmDamage;  // or whatever damage you want
+
+                    // Remove the ectoplasm after collision
+                    e.isActive = false;
+                    ectoplasms.erase(ectoplasms.begin() + i);
                 }
 
             }
@@ -445,10 +502,15 @@ int main() {
         
         for (Ghost &g : ghosts) {
             if (g.isActive) {
-                DrawRectangleV(g.position, g.size, LIGHTGRAY);
+                DrawCenteredRectangle(g.position, g.size, LIGHTGRAY);
             }
         }
 
+        for (Ectoplasm &e : ectoplasms) {
+            if (e.isActive) {
+                DrawCircleV(e.position, e.size, RED);
+            }
+        }
 
         if (isDragging) {
             DrawLineEx(dragStart, dragEnd, 2.0f, WHITE);
