@@ -12,7 +12,8 @@ const int MAX_BOOKS = 10;
 const float BOOK_RESPAWN_DELAY = 3.0f;
 const float BOOK_PICKUP_RADIUS = 35.0f;
 
-const int MAX_GHOSTS = 8;
+//Ghosts are the harmful entities, touching them reduces the healthbar
+const int MAX_GHOSTS = 6;
 const float GHOST_RESPAWN_DELAY = 3.0f; //previously used for uniform respawn
 float GHOST_RESPAWN_MIN = 0.5f; //used for random respawn
 float GHOST_RESPAWN_MAX = 3.0f;
@@ -193,6 +194,22 @@ bool CheckLibrarianGhostCollision(Vector2 playerPos, float size, Vector2 ghostPo
     return (distX * distX + distY * distY) <= (size * size);
 }
 
+//Oke, i know this is redundant, but its mostly for readability sake
+bool CheckFlerkenGhostCollision(Vector2 flerkenPos, float size, Vector2 ghostPosition, Vector2 ghostSize) {
+    // Compute half-size
+    Vector2 half = {ghostSize.x/2, ghostSize.y/2};
+
+    // Find closest point on book to player
+    float closestX = Clamp(flerkenPos.x, ghostPosition.x - half.x, ghostPosition.x + half.x);
+    float closestY = Clamp(flerkenPos.y, ghostPosition.y - half.y, ghostPosition.y + half.y);
+
+    // Distance from player to closest point
+    float distX = flerkenPos.x - closestX;
+    float distY = flerkenPos.y - closestY;
+
+    return (distX * distX + distY * distY) <= (size * size);
+}
+
 
 int main() {
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -358,18 +375,23 @@ int main() {
                 }
 
             }
-
-            //fact check because sleepy avielle wrote and copied the above HDSAHDAHDSAH
-
+        
             for (Ghost &g : ghosts) {
                 if (g.isActive) {
 
                     // Ghost moves straight across the screen from where they spawned
                     g.position = Vector2Add(g.position, Vector2Scale(g.velocity, TIMESTEP));
 
+                    //Collision with Flerken
+                    if(CheckFlerkenGhostCollision(flerken.position, flerken.size, g.position, g.size)){
+                        //no damage player
+                        g.isActive = false;
+                        g.respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN*1000, GHOST_RESPAWN_MAX*1000) / 1000.0f;
+                        continue;   // skip movement/despawn check for this frame
+                    }
+
                     // Collision with librarian
                     if (CheckLibrarianGhostCollision(librarian.position, librarian.size, g.position, g.size)) {
-                        // Damage player later
                         ui.playerHealth--;
                         g.isActive = false;
                         g.respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN*1000, GHOST_RESPAWN_MAX*1000) / 1000.0f;
@@ -405,7 +427,6 @@ int main() {
                 }
 
             }
-
 
         }
 
@@ -453,7 +474,5 @@ int main() {
 
 //avielle dumpy
 //ghost 
-//randomly spawning ghost out of bounds who slowly come in in any direction (grey)
 //randomly get position of ghost and drop a ectoplasm (red circle)
 //collision for red circle (mimick books)
-//collision for ghost (AABB) then harm
