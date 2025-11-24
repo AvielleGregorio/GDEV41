@@ -1,2 +1,5 @@
 libraylib.a
 .DS_Store
+*.exe
+va_*.cpp
+raylib/
