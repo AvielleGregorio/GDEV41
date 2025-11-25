@@ -102,6 +102,10 @@ public:
         // Updates UI
         ui.Update(deltaTime); 
 
+        if (ui.gameTimer >= 10) {
+            GetSceneManager()->SwitchScene(2);
+        }
+
         if (!flerken.isActive) {
             // Flerken Control
             if (IsKeyPressed(KEY_SPACE)) {
