@@ -26,8 +26,8 @@ struct Player : CircleCollider {
     Vector2 velocity = Vector2Zero();
     bool isActive = true; 
     // To be replaced when Sprite
-    // Texture playerTexture;
-    // Rectangle textureSource;
+    Texture texture;
+    Rectangle texture_source;
     
     Player() {
         // Set Librarian's initial position in the middle (for now)
@@ -46,6 +46,12 @@ struct Flerken : CircleCollider {
     // Texture playerTexture;
     // Rectangle textureSource;
 
+    Texture sitting_texture;
+    Rectangle sitting_texture_source;
+    Texture active_texture;
+    float active_rotation = 0;
+    Texture tentacles_texture;
+
     Flerken() {
         position;
         size = 20;
@@ -60,8 +66,13 @@ struct Ghost : AABBCollider {
     //Temporary Ghost Dimensions
     float speed = 100;
     float mass = 2.0f;
-    bool isActive = true; 
+    bool isActive = true;
+    bool isEaten = false; 
     float respawnCooldown;
+
+    // for when eaten by flerken
+    float tentacles_rotation = 0;
+    float tentacles_timer = 0;
 
     Ghost(int ghostCount) {
         size = {35,40};
@@ -70,6 +81,7 @@ struct Ghost : AABBCollider {
 
     void spawn(int ghostCount) {
         isActive = true;
+        isEaten = false;
         center.x = ghostCount % 2 == 0 ?
             GetRandomValue(-10, -1) :
             GetRandomValue(1285, 1300);
@@ -119,6 +131,7 @@ struct Book : AABBCollider {
     bool isActive = true;                  
     float respawnCooldown = 0;          // Timer before the book can spawn back again
     Color color = SKYBLUE;
+    Color book_colors[4] = {RED, GREEN, YELLOW, BLUE};
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
@@ -133,6 +146,7 @@ struct Book : AABBCollider {
     void spawn() {
         center.x = GetRandomValue(margin, WINDOW_WIDTH - margin);
         center.y = GetRandomValue(margin, WINDOW_HEIGHT - margin);
+        // color = book_colors[GetRandomValue(0,3)];
         isActive = true;
     }
 };

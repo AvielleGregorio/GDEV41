@@ -10,6 +10,7 @@ struct UIManager {
     float gameTimer = 0.0f;
     int playerHealth = 100;
     int playerScore = 0;
+    // float playerSpeed = 0;
 
     void Update(float deltaTime) {
         gameTimer += deltaTime;
@@ -35,6 +36,7 @@ struct UIManager {
 
         //Draw Score
         DrawText(TextFormat("Score: %d", playerScore), 20, 140, 22, WHITE);
+        // DrawText(TextFormat("Speed: %.2f", playerSpeed), 20, 180, 22, WHITE);
 
     }
 };
@@ -82,6 +84,19 @@ class GameScene : public Scene {
     
     float accumulator = 0;
 
+    int texture_base = 32;
+    float texture_scale = 4;
+
+    float animation_timer = 0;
+    float animation_FPS = 4;
+
+    Texture ghost_texture;
+    bool ghost_spin = true;
+    float ghost_spin_timer = 0;
+    float ghost_rotation = 0;
+
+    Texture book_texture;
+
 public:
     void Begin() override {
         for (int i = 0; i < MAX_BOOKS; i ++) {
@@ -93,6 +108,18 @@ public:
             ghostCounter++;
             ghosts.push_back(g);
         }
+
+        librarian.texture = ResourceManager::GetInstance()->GetTexture("librarian.png");
+        librarian.texture_source = {0, 0, (float)texture_base, (float)texture_base};
+
+        flerken.sitting_texture = ResourceManager::GetInstance()->GetTexture("flerken_sitting.png");
+        flerken.sitting_texture_source = {0, 0, (float)texture_base, (float)texture_base};
+        flerken.active_texture = ResourceManager::GetInstance()->GetTexture("flerken_active.png");
+        flerken.tentacles_texture = ResourceManager::GetInstance()->GetTexture("flerken_tentacles.png");
+
+        ghost_texture = ResourceManager::GetInstance()->GetTexture("ghost.png");
+
+        book_texture = ResourceManager::GetInstance()->GetTexture("book.png");
     }   
 
     void End() override {}
@@ -102,9 +129,16 @@ public:
         // Updates UI
         ui.Update(deltaTime); 
 
-        if (ui.gameTimer >= 10) {
-            GetSceneManager()->SwitchScene(2);
+        // if (ui.gameTimer >= 10) {
+        //     GetSceneManager()->SwitchScene(2);
+        // }
+
+        if (IsKeyPressed(KEY_ENTER)) {
+            if (GetSceneManager() != nullptr) {
+                GetSceneManager()->SwitchScene(2);
+            }
         }
+
 
         if (!flerken.isActive) {
             // Flerken Control
@@ -117,6 +151,7 @@ public:
                 // LAUNCH FLERKEN
                 flerken.velocity = Vector2Scale(flerkenDir, flerken.speed);
                 flerken.isActive = true;
+                ghost_spin = true;
             }
         }
 
@@ -158,19 +193,19 @@ public:
 
         accumulator += deltaTime;
         while (accumulator >= TIMESTEP) {
-            float resistance = 0.6f;
+            float resistance = 1.0f;
             // Librarian Physics
             librarian.velocity = Vector2Add(librarian.velocity, Vector2Scale(librarian.acceleration, TIMESTEP));
             Vector2 friction = Vector2Scale(librarian.velocity, -(resistance / librarian.mass) * TIMESTEP);
             librarian.velocity = Vector2Add(librarian.velocity, friction);
             librarian.position = Vector2Add(librarian.position, Vector2Scale(librarian.velocity, TIMESTEP));
-            if (Vector2Length(librarian.velocity) < 0.9f) {
+            if (Vector2Length(librarian.velocity) < 100.0f) {
                 librarian.velocity = Vector2Zero();
             }
+            // ui.playerSpeed = Vector2Length(librarian.velocity);
 
             // Flerken Physics
             if (flerken.isActive) {
-                DrawCircleV(flerken.position, flerken.size, ORANGE);
                 flerken.position = Vector2Add(flerken.position, Vector2Scale(flerken.velocity, TIMESTEP));
                 
                 if (flerken.position.x - flerken.size <= 0 || flerken.position.x + flerken.size >= WINDOW_WIDTH) {
@@ -247,6 +282,7 @@ public:
                     if(checkCollision(ghost, flerken)){
                         //no damage player
                         ghost.despawn();
+                        ghost.isEaten = true;
                         cout << "ghost + flerken" << endl;
                         continue;   // skip movement/despawn check for this frame
                     }
@@ -301,6 +337,40 @@ public:
 
             }
         }
+        
+        // Sprite Animation Logic
+        
+        animation_timer += deltaTime;
+
+        // Librarian and Flerken
+        if (animation_timer >= (1/(animation_FPS*(Vector2Length(librarian.velocity)/100))) && Vector2Length(librarian.velocity) >= 100.0f) {
+            librarian.texture_source.x = (((int)(librarian.texture_source.x/texture_base)+1)%8)*texture_base;
+            flerken.sitting_texture_source.x = librarian.texture_source.x;
+            animation_timer = 0;
+        }
+        flerken.active_rotation += deltaTime*Vector2Length(flerken.velocity);
+
+        // Ghosts
+        float ghost_spin_length = 0.5; 
+        if (flerken.isActive && ghost_spin) {
+            ghost_spin_timer += deltaTime;
+            ghost_rotation += deltaTime*360*2;
+            if (ghost_spin_timer >= ghost_spin_length) {
+                ghost_spin_timer = 0;
+                ghost_spin = false;
+            }
+        }
+        for (Ghost &ghost : ghosts) {
+            if (ghost.isEaten) {
+                ghost.tentacles_timer += deltaTime;
+                ghost.tentacles_rotation += deltaTime*360;
+                if (ghost.tentacles_timer >= 1) {
+                    ghost.isEaten = false;
+                    ghost.tentacles_timer = 0;
+                    ghost.tentacles_rotation = 0;
+                }
+            }
+        }
     }
 
     void Draw() override {
@@ -309,14 +379,69 @@ public:
         for (Book &b : books) {
             if (b.isActive) {
                 DrawCenteredRectangle(b.center, b.size, b.color);
+                DrawTexturePro(
+                    book_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {b.center.x, b.center.y, texture_base*texture_scale, texture_base*texture_scale},
+                    {texture_base*texture_scale/2, texture_base*texture_scale/2},
+                    0,
+                    b.color
+                );
             }
         }
-
-        DrawCircleV(librarian.position, librarian.size, librarian.color);
         
+        DrawCircleV(librarian.position, librarian.size, librarian.color);
+        DrawTexturePro(
+            librarian.texture,
+            librarian.texture_source,
+            {librarian.position.x, librarian.position.y, texture_base*texture_scale, texture_base*texture_scale},
+            {texture_base*texture_scale/2, texture_base*texture_scale/2},
+            0,
+            WHITE
+        );
+
+        if (!flerken.isActive) {
+            DrawTexturePro(
+                flerken.sitting_texture,
+                flerken.sitting_texture_source,
+                {librarian.position.x, librarian.position.y, texture_base*texture_scale, texture_base*texture_scale},
+                {texture_base*texture_scale/2, texture_base*texture_scale/2},
+                0,
+                WHITE
+            );
+        } else {
+            DrawCircleV(flerken.position, flerken.size, ORANGE);
+            DrawTexturePro(
+                flerken.active_texture,
+                {0, 0, (float)texture_base, (float)texture_base},
+                {flerken.position.x, flerken.position.y, texture_base*texture_scale, texture_base*texture_scale},
+                {texture_base*texture_scale/2, texture_base*texture_scale/2},
+                flerken.active_rotation,
+                WHITE
+            );
+        }
+
         for (Ghost &g : ghosts) {
             if (g.isActive) {
                 DrawCenteredRectangle(g.center, g.size, LIGHTGRAY);
+                DrawTexturePro(
+                    ghost_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {g.center.x, g.center.y, texture_base*texture_scale, texture_base*texture_scale},
+                    {texture_base*texture_scale/2, texture_base*texture_scale/2},
+                    ghost_rotation,
+                    WHITE
+                );
+            }
+            if (g.isEaten) {
+                DrawTexturePro(
+                    flerken.tentacles_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {g.center.x, g.center.y, Lerp( texture_base*texture_scale, 0, g.tentacles_timer), Lerp(texture_base*texture_scale, 0,  g.tentacles_timer)},
+                    Vector2Lerp({texture_base*texture_scale/2, texture_base*texture_scale/2}, {0, 0}, g.tentacles_timer),
+                    g.tentacles_rotation,
+                    WHITE
+                );
             }
         }
 
