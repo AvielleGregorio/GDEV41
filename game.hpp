@@ -25,6 +25,9 @@ struct Player : CircleCollider {
     Vector2 acceleration = Vector2Zero();
     Vector2 velocity = Vector2Zero();
     bool isActive = true; 
+    float blindTimer = 0;
+    float slowTimer = 0;
+    float slowMult =  0.3f;
     // To be replaced when Sprite
     Texture texture;
     Rectangle texture_source;
@@ -58,7 +61,14 @@ struct Flerken : CircleCollider {
     }
 };
 
+enum GhostType {
+    ghost,
+    shadow,
+    spirit
+};
+
 struct Ghost : AABBCollider {
+    GhostType ghost;
     Vector2 velocity;
     // To be replaced when Sprite
     // Texture playerTexture;
@@ -111,20 +121,61 @@ struct Ectoplasm : CircleCollider {
     Color color = RED;
 };
 
-struct Shadow{
-    Vector2 position;
-    Vector2 velocity;
+struct Shadow : AABBCollider {
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
+    GhostType shadow;
+    Vector2 velocity;
+    float speed = 100;
+    float mass = 2.0f;
+    bool isActive = true;
+    bool isEaten = false; 
+    float respawnCooldown;
+    float blindDuration = 1.50f;
+
+    // When eaten by flerken
+    float tentables_rotation = 0;
+    float tentacles_timer = 0;
+
+    Shadow(int shadowCount) {
+        size = {35, 40};
+        spawn(shadowCount);
+    }
+
+    void spawn(int shadowCount) {
+        isActive = true;
+        isEaten = false;
+        center.x = shadowCount % 2 == 0 ?
+            GetRandomValue(-10, -1) :
+            GetRandomValue(1285, 1300);
+        center.y = GetRandomValue (0, 600);
+        respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1500, GHOST_RESPAWN_MAX = 1500) / 1000.0f;
+        velocity = center.x < 0 ?
+            Vector2({speed, 0}) :
+            Vector2({-speed, 0});
+        cout << "shadow spawned" << endl;
+    }
+
+    void despawn() {
+        isActive = false;
+        respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1500, GHOST_RESPAWN_MAX * 1500) / 1000.0f;
+        cout << "shadow despawned!" << endl;
+    }
 };
 
 struct Spirit{
-    Vector2 position;
-    Vector2 velocity;
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
+    GhostType spirit;
+    Vector2 velocity;
+    float speed = 100;
+    float mass = 2.0f;
+    bool isActive = true;
+    bool isEaten = false; 
+    float respawnCooldown;
+    float slowDuration = 2.0f;
 };
 
 struct Book : AABBCollider {
