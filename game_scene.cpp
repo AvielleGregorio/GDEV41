@@ -61,8 +61,12 @@ class GameScene : public Scene {
 
     //Ghosts are the harmful entities, touching them reduces the healthbar, and they drop ectoplasm
     const int MAX_GHOSTS = 6;
+    const int MAX_SHADOWS = 7;
+    const int MAX_SPIRITS = 10;
     const float GHOST_RESPAWN_DELAY = 3.0f; //previously used for uniform respawn
     int ghostCounter = 0;
+    int shadowCounter = 0;
+    int spiritCounter = 0;
     int ghostDamage = 10;
     int ectoplasmDamage = 5;
     int MAX_ECTOPLASM = 4;
@@ -81,6 +85,7 @@ class GameScene : public Scene {
     std::vector<Book> books;
     std::vector<Ghost> ghosts;
     std::vector<Ectoplasm> ectoplasms;
+    std::vector<Shadow> shadows;
     
     float accumulator = 0;
 
@@ -107,6 +112,11 @@ public:
             Ghost g(ghostCounter);
             ghostCounter++;
             ghosts.push_back(g);
+        }
+        for (int i = 0; i < MAX_SHADOWS; i ++) {
+            Shadow s(shadowCounter);
+            shadowCounter ++;
+            shadows.push_back(s);
         }
 
         librarian.texture = ResourceManager::GetInstance()->GetTexture("librarian.png");
@@ -336,6 +346,40 @@ public:
                 }
 
             }
+
+            for (Shadow &shadow : shadows) {
+                if (shadow.isActive) {
+                    // Random spawns the shadows
+
+
+                    //Checks Collision with Flerken
+                    if (checkCollision(shadow, flerken)) {
+                        //No damage to player
+                        shadow.despawn();
+                        shadow.isEaten = true;
+                        cout << "shadow + flerken" << endl;
+                        continue;
+                    }
+
+                    //Checks collision with librarian
+                    if (checkCollision(shadow, librarian)) {
+                        // ADD TO UI 
+                        cout << "BLINDED!" << endl;
+                        shadow.despawn();
+                        continue;
+                    }
+
+                } else {
+                    shadow.respawnCooldown -= TIMESTEP;
+
+                    if (shadow.respawnCooldown <= 0) {
+                        shadow.spawn(shadowCounter);
+                        shadowCounter++;
+                    }
+                }
+                
+            }
+
         }
         
         // Sprite Animation Logic
