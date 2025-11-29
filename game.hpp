@@ -25,8 +25,9 @@ struct Player : CircleCollider {
     Vector2 acceleration = Vector2Zero();
     Vector2 velocity = Vector2Zero();
     bool isActive = true; 
-    float blindTimer = 0;
-    float slowTimer = 0;
+    bool isBlinded = false;
+    float blindTimer = 0.0f;
+    float slowTimer = 0.0f;
     float slowMult =  0.3f;
     // To be replaced when Sprite
     Texture texture;
@@ -135,7 +136,7 @@ struct Shadow : AABBCollider {
     float blindDuration = 1.50f;
 
     // When eaten by flerken
-    float tentables_rotation = 0;
+    float tentacles_rotation = 0;
     float tentacles_timer = 0;
 
     Shadow(int shadowCount) {
@@ -146,11 +147,9 @@ struct Shadow : AABBCollider {
     void spawn(int shadowCount) {
         isActive = true;
         isEaten = false;
-        center.x = shadowCount % 2 == 0 ?
-            GetRandomValue(-10, -1) :
-            GetRandomValue(1285, 1300);
-        center.y = GetRandomValue (0, 600);
-        respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1500, GHOST_RESPAWN_MAX = 1500) / 1000.0f;
+        center.x = GetRandomValue(20, WINDOW_WIDTH - 20);
+        center.y = GetRandomValue(20, WINDOW_WIDTH - 20);
+        respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1000, GHOST_RESPAWN_MAX * 1000) / 1000.0f;
         velocity = center.x < 0 ?
             Vector2({speed, 0}) :
             Vector2({-speed, 0});
@@ -159,7 +158,7 @@ struct Shadow : AABBCollider {
 
     void despawn() {
         isActive = false;
-        respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1500, GHOST_RESPAWN_MAX * 1500) / 1000.0f;
+        respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1000, GHOST_RESPAWN_MAX * 1000) / 1000.0f;
         cout << "shadow despawned!" << endl;
     }
 };
