@@ -3,3 +3,4 @@ libraylib.a
 *.exe
 va_*.cpp
 raylib/
+*.kra*
