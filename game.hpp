@@ -27,9 +27,10 @@ struct Player : CircleCollider {
     Vector2 velocity = Vector2Zero();
     bool isActive = true; 
     bool isBlinded = false;
+    bool isSlowed = false;
     float blindTimer = 0.0f;
     float slowTimer = 0.0f;
-    float slowMult =  0.3f;
+    float slowMult =  5.0f;
     // To be replaced when Sprite
     Texture texture;
     Rectangle texture_source;
@@ -127,7 +128,6 @@ struct Shadow : AABBCollider {
     bool isActive = true;
     bool isEaten = false; 
     float respawnCooldown;
-    float blindDuration = 1.50f;
 
     // When eaten by flerken
     float tentacles_rotation = 0;
@@ -157,7 +157,7 @@ struct Shadow : AABBCollider {
     }
 };
 
-struct Spirit{
+struct Spirit : AABBCollider{
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
@@ -167,7 +167,34 @@ struct Spirit{
     bool isActive = true;
     bool isEaten = false; 
     float respawnCooldown;
-    float slowDuration = 2.0f;
+
+    // When eaten by flerken
+    float tentacles_rotation = 0;
+    float tentacles_timer = 0;
+
+    Spirit(int spiritCount) {
+        size = {35, 40};
+        spawn(spiritCount);
+    }
+
+    void spawn(int spiritCount) {
+        isActive = true;
+        isEaten = false;
+        center.x = spiritCount % 2 == 0 ?
+            GetRandomValue(-10, -1) :
+            GetRandomValue(1285, 1300);
+        center.y = GetRandomValue(0, 600);
+        respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1500, GHOST_RESPAWN_MAX * 1500) / 1000.0f;
+        velocity = center.x < 0 ?
+            Vector2({speed, 0}) :
+            Vector2({-speed, 0});
+        cout << "spirit spawned" << endl;
+    }
+
+    void despawn() {
+        isActive = false;
+        respawnCooldown = respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1500, GHOST_RESPAWN_MAX * 1500) / 1000.0f;
+    }
 };
 
 struct Book : AABBCollider {
