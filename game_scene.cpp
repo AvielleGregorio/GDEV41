@@ -97,6 +97,8 @@ class GameScene : public Scene {
 
     Texture book_texture;
 
+    Texture background;
+
 public:
     void Begin() override {
         for (int i = 0; i < MAX_BOOKS; i ++) {
@@ -120,6 +122,7 @@ public:
         ghost_texture = ResourceManager::GetInstance()->GetTexture("ghost.png");
 
         book_texture = ResourceManager::GetInstance()->GetTexture("book.png");
+        background = ResourceManager::GetInstance()->GetTexture("background.png");
     }   
 
     void End() override {}
@@ -375,6 +378,15 @@ public:
 
     void Draw() override {
         ClearBackground(BLACK);
+        
+        DrawTexturePro(
+            background,
+            {0, 0, 320, 180},
+            {0, 0, 1280, 720},
+            {0, 0},
+            0,
+            WHITE
+        );
 
         for (Book &b : books) {
             if (b.isActive) {
