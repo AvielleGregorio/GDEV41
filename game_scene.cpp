@@ -86,6 +86,7 @@ class GameScene : public Scene {
     std::vector<Ghost> ghosts;
     std::vector<Ectoplasm> ectoplasms;
     std::vector<Shadow> shadows;
+    std::vector<Spirit> spirits;
     
     float accumulator = 0;
 
@@ -119,6 +120,11 @@ public:
             Shadow s(shadowCounter);
             shadowCounter ++;
             shadows.push_back(s);
+        }
+        for (int i = 0; i < MAX_SPIRITS; i ++) {
+            Spirit sp(spiritCounter);
+            spiritCounter++;
+            spirits.push_back(sp);
         }
 
         librarian.texture = ResourceManager::GetInstance()->GetTexture("librarian.png");
@@ -213,12 +219,21 @@ public:
 
         accumulator += deltaTime;
         while (accumulator >= TIMESTEP) {
-            float resistance = 1.0f;
+            float baseResistance = 1.0f;
+            float resistance = baseResistance;
             // Librarian Physics
+            if (librarian.isSlowed) {
+                resistance *= librarian.slowMult;
+            }
             librarian.velocity = Vector2Add(librarian.velocity, Vector2Scale(librarian.acceleration, TIMESTEP));
             Vector2 friction = Vector2Scale(librarian.velocity, -(resistance / librarian.mass) * TIMESTEP);
             librarian.velocity = Vector2Add(librarian.velocity, friction);
+
             librarian.position = Vector2Add(librarian.position, Vector2Scale(librarian.velocity, TIMESTEP));
+            float speed = Vector2Length(librarian.velocity);
+            cout << speed << endl;
+            
+
             if (Vector2Length(librarian.velocity) < 100.0f) {
                 librarian.velocity = Vector2Zero();
             }
@@ -389,7 +404,7 @@ public:
                     if (checkCollision(shadow, librarian)) {
                         // ADD TO UI 
                         librarian.isBlinded = true;
-                        librarian.blindTimer = 2.0f;
+                        librarian.blindTimer = 3.0f;
                         cout << "BLINDED!" << endl;
                         shadow.despawn();
                         continue;
@@ -408,6 +423,54 @@ public:
                 librarian.blindTimer -= TIMESTEP;
                 if (librarian.blindTimer <= 0) {
                     librarian.isBlinded = false;
+                }
+            }
+
+            for (Spirit &spirit : spirits) {
+                if (spirit.isActive) {
+
+                    // Ghost moves straight across the screen from where they spawned
+                    spirit.center = Vector2Add(spirit.center, Vector2Scale(spirit.velocity, TIMESTEP));
+
+                    //Collision with Flerken
+                    if(checkCollision(spirit, flerken)){
+                        //no damage player
+                        spirit.despawn();
+                        spirit.isEaten = true;
+                        cout << "spirit + flerken" << endl;
+                        continue;   // skip movement/despawn check for this frame
+                    }
+
+                    // Collision with librarian
+                    if (checkCollision(spirit, librarian)) {
+                        librarian.isSlowed = true;
+                        librarian.slowTimer = 1.5f;
+                        cout << " SLOWED DOWN " << endl;
+                        spirit.despawn();
+                        continue;   // skip movement/despawn check for this frame
+                    }                    
+
+                    // Despawn once off-screen on opposite side, either left or right depending where the ghost came from
+                    if (spirit.center.x < -100 || spirit.center.x > WINDOW_WIDTH + 100) {
+                        spirit.despawn();
+                    }
+
+                } else {
+                    // ghost respawn cool down
+                    spirit.respawnCooldown -= TIMESTEP;
+
+                    // Respawn when ready and if max ghosts not hit
+                    if (spirit.respawnCooldown <= 0) {
+                        spirit.spawn(spiritCounter);
+                        spiritCounter++;
+                    }
+                }
+
+            }
+            if (librarian.isSlowed) {
+                librarian.slowTimer -= TIMESTEP;
+                if (librarian.slowTimer <= 0) {
+                    librarian.isSlowed = false;
                 }
             }
 
@@ -454,6 +517,17 @@ public:
                     shadow.isEaten = false;
                     shadow.tentacles_timer = 0;
                     shadow.tentacles_rotation = 0;
+                }
+            }
+        }
+        for (Spirit &spirit : spirits) {
+            if (spirit.isEaten) {
+                spirit.tentacles_timer += deltaTime;
+                spirit.tentacles_rotation += deltaTime*360;
+                if (spirit.tentacles_timer >= 1) {
+                    spirit.isEaten = false;
+                    spirit.tentacles_timer = 0;
+                    spirit.tentacles_rotation = 0;
                 }
             }
         }
@@ -563,6 +637,26 @@ public:
                     {s.center.x, s.center.y, Lerp( texture_base*texture_scale, 0, s.tentacles_timer), Lerp(texture_base*texture_scale, 0,  s.tentacles_timer)},
                     Vector2Lerp({texture_base*texture_scale/2, texture_base*texture_scale/2}, {0, 0}, s.tentacles_timer),
                     s.tentacles_rotation,
+                    WHITE
+                );
+            }
+            
+        }
+
+        for (Spirit &sp : spirits) {
+            if (sp.isActive) {
+                DrawCenteredRectangle(sp.center, sp.size, BLUE);
+                //Draw Shadow
+                
+
+            }
+            if (sp.isEaten) {
+                DrawTexturePro(
+                    flerken.tentacles_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {sp.center.x, sp.center.y, Lerp( texture_base*texture_scale, 0, sp.tentacles_timer), Lerp(texture_base*texture_scale, 0,  sp.tentacles_timer)},
+                    Vector2Lerp({texture_base*texture_scale/2, texture_base*texture_scale/2}, {0, 0}, sp.tentacles_timer),
+                    sp.tentacles_rotation,
                     WHITE
                 );
             }
