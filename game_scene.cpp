@@ -61,8 +61,12 @@ class GameScene : public Scene {
 
     //Ghosts are the harmful entities, touching them reduces the healthbar, and they drop ectoplasm
     const int MAX_GHOSTS = 6;
+    const int MAX_SHADOWS = 4;
+    const int MAX_SPIRITS = 10;
     const float GHOST_RESPAWN_DELAY = 3.0f; //previously used for uniform respawn
     int ghostCounter = 0;
+    int shadowCounter = 0;
+    int spiritCounter = 0;
     int ghostDamage = 10;
     int ectoplasmDamage = 5;
     int MAX_ECTOPLASM = 4;
@@ -81,6 +85,7 @@ class GameScene : public Scene {
     std::vector<Book> books;
     std::vector<Ghost> ghosts;
     std::vector<Ectoplasm> ectoplasms;
+    std::vector<Shadow> shadows;
     
     float accumulator = 0;
 
@@ -109,6 +114,11 @@ public:
             Ghost g(ghostCounter);
             ghostCounter++;
             ghosts.push_back(g);
+        }
+        for (int i = 0; i < MAX_SHADOWS; i ++) {
+            Shadow s(shadowCounter);
+            shadowCounter ++;
+            shadows.push_back(s);
         }
 
         librarian.texture = ResourceManager::GetInstance()->GetTexture("librarian.png");
@@ -339,6 +349,47 @@ public:
                 }
 
             }
+
+            for (Shadow &shadow : shadows) {
+                if (shadow.isActive) {
+                    // Random spawns the shadows
+
+
+                    //Checks Collision with Flerken
+                    if (checkCollision(shadow, flerken)) {
+                        //No damage to player
+                        shadow.despawn();
+                        shadow.isEaten = true;
+                        cout << "shadow + flerken" << endl;
+                        continue;
+                    }
+
+                    //Checks collision with librarian
+                    if (checkCollision(shadow, librarian)) {
+                        // ADD TO UI 
+                        librarian.isBlinded = true;
+                        librarian.blindTimer = 2.0f;
+                        cout << "BLINDED!" << endl;
+                        shadow.despawn();
+                        continue;
+                    }
+
+                } else {
+                    shadow.respawnCooldown -= TIMESTEP;
+
+                    if (shadow.respawnCooldown <= 0) {
+                        shadow.spawn(shadowCounter);
+                        shadowCounter++;
+                    }
+                }
+            }
+            if (librarian.isBlinded) {
+                librarian.blindTimer -= TIMESTEP;
+                if (librarian.blindTimer <= 0) {
+                    librarian.isBlinded = false;
+                }
+            }
+
         }
         
         // Sprite Animation Logic
@@ -461,6 +512,29 @@ public:
             if (e.isActive) {
                 DrawCircleV(e.position, e.size, RED);
             }
+        }
+
+        for (Shadow &s : shadows) {
+            if (s.isActive) {
+                DrawCenteredRectangle(s.center, s.size, LIGHTGRAY);
+                //Draw Shadow
+                if (librarian.isBlinded) {
+                    float alpha = librarian.blindTimer;  // fades out as timer ends
+                    DrawRectangle(350, 250, 600, 300, Fade(LIGHTGRAY, alpha));  // Fades 
+                }
+
+            }
+            if (s.isEaten) {
+                DrawTexturePro(
+                    flerken.tentacles_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {s.center.x, s.center.y, Lerp( texture_base*texture_scale, 0, s.tentacles_timer), Lerp(texture_base*texture_scale, 0,  s.tentacles_timer)},
+                    Vector2Lerp({texture_base*texture_scale/2, texture_base*texture_scale/2}, {0, 0}, s.tentacles_timer),
+                    s.tentacles_rotation,
+                    WHITE
+                );
+            }
+            
         }
 
         if (isDragging) {
