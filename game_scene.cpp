@@ -163,8 +163,15 @@ public:
 
                 // LAUNCH FLERKEN
                 flerken.velocity = Vector2Scale(flerkenDir, flerken.speed);
+                flerken.isReturning = false;
                 flerken.isActive = true;
                 ghost_spin = true;
+            }
+        }
+
+        if (flerken.isActive && Vector2Length(flerken.velocity) <= 1.0f) {
+            if (IsKeyPressed(KEY_R)) {
+                flerken.isReturning = true;
             }
         }
 
@@ -232,9 +239,24 @@ public:
                 Vector2 flerkenFriction = Vector2Scale(flerken.velocity, -(resistance / flerken.mass) * TIMESTEP);
                 flerken.velocity = Vector2Add(flerken.velocity, flerkenFriction);
                 if (Vector2Length(flerken.velocity) < 1.0f) {
-                    flerken.isActive = false;       // Keep this muna; I'll implement that librarian can "recall" flerken
+                          // Keep this muna; I'll implement that librarian can "recall" flerken
+                    flerken.isReturning = true;
                 }
+            }
 
+            if (flerken.isReturning) {
+                Vector2 toLibrarian = Vector2Subtract(librarian.position, flerken.position);
+                float distance = Vector2Length(toLibrarian);
+                Vector2 librarianDir = Vector2Scale(toLibrarian, 1/distance);
+                float returnSpeed = flerken.speed;
+
+                flerken.position = Vector2Add(flerken.position, Vector2Scale(librarianDir, returnSpeed * TIMESTEP));
+
+                if (distance < 5.0f) {
+                    flerken.position = librarian.position;
+                    flerken.velocity = Vector2Zero();
+                    flerken.isActive = false;
+                }
             }
 
             accumulator -= TIMESTEP;
@@ -354,7 +376,6 @@ public:
                 if (shadow.isActive) {
                     // Random spawns the shadows
 
-
                     //Checks Collision with Flerken
                     if (checkCollision(shadow, flerken)) {
                         //No damage to player
@@ -422,6 +443,17 @@ public:
                     ghost.isEaten = false;
                     ghost.tentacles_timer = 0;
                     ghost.tentacles_rotation = 0;
+                }
+            }
+        }
+        for (Shadow &shadow : shadows) {
+            if (shadow.isEaten) {
+                shadow.tentacles_timer += deltaTime;
+                shadow.tentacles_rotation += deltaTime*360;
+                if (shadow.tentacles_timer >= 1) {
+                    shadow.isEaten = false;
+                    shadow.tentacles_timer = 0;
+                    shadow.tentacles_rotation = 0;
                 }
             }
         }

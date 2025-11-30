@@ -5,6 +5,7 @@
 
 float GHOST_RESPAWN_MIN = 0.5f; //used for random respawn
 float GHOST_RESPAWN_MAX = 3.0f;
+float MIN_SHADOW_DIST = 60.0f;
 
 struct CircleCollider {
     string collider_type = "circle";
@@ -46,6 +47,7 @@ struct Flerken : CircleCollider {
     float speed = 800;
     float mass = 2.0f;
     bool isActive = false;
+    bool isReturning = false;
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
@@ -62,14 +64,7 @@ struct Flerken : CircleCollider {
     }
 };
 
-enum GhostType {
-    ghost,
-    shadow,
-    spirit
-};
-
 struct Ghost : AABBCollider {
-    GhostType ghost;
     Vector2 velocity;
     // To be replaced when Sprite
     // Texture playerTexture;
@@ -126,7 +121,6 @@ struct Shadow : AABBCollider {
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
-    GhostType shadow;
     Vector2 velocity;
     float speed = 100;
     float mass = 2.0f;
@@ -147,8 +141,8 @@ struct Shadow : AABBCollider {
     void spawn(int shadowCount) {
         isActive = true;
         isEaten = false;
-        center.x = GetRandomValue(20, WINDOW_WIDTH - 20);
-        center.y = GetRandomValue(20, WINDOW_WIDTH - 20);
+        center.x = GetRandomValue(100, WINDOW_WIDTH - 100);
+        center.y = GetRandomValue(100, WINDOW_HEIGHT - 100);
         respawnCooldown = GetRandomValue(GHOST_RESPAWN_MIN * 1000, GHOST_RESPAWN_MAX * 1000) / 1000.0f;
         velocity = center.x < 0 ?
             Vector2({speed, 0}) :
@@ -167,7 +161,6 @@ struct Spirit{
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
-    GhostType spirit;
     Vector2 velocity;
     float speed = 100;
     float mass = 2.0f;
