@@ -2,11 +2,11 @@
 #include "scene_manager.hpp"
 
 class TitleScene : public Scene {
-    Texture raylib_logo;
+    Texture title;
 
 public:
     void Begin() override {
-        raylib_logo = ResourceManager::GetInstance()->GetTexture("Raylib_logo.png");
+        title = ResourceManager::GetInstance()->GetTexture("title.png");
     }
 
     void End() override {}
@@ -20,7 +20,14 @@ public:
     }
 
     void Draw() override {
-        DrawTexturePro(raylib_logo, {0, 0, 256, 256}, {300, 100, 200, 200}, {0, 0}, 0.0f, WHITE);
-        DrawText("Press ENTER", 300, 325, 30, BLACK);
+        DrawTexturePro(
+            title,
+            {0, 0, 320, 180},
+            {0, 0, 1280, 720},
+            {0, 0},
+            0.0f,
+            WHITE
+        );
+        DrawText("Press ENTER", 960, 540, 30, BLACK);
     }
 };
