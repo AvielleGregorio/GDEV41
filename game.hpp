@@ -31,6 +31,7 @@ struct Player : CircleCollider {
     float blindTimer = 0.0f;
     float slowTimer = 0.0f;
     float slowMult =  5.0f;
+    float hurt_timer = 0.0f;
     // To be replaced when Sprite
     Texture texture;
     Rectangle texture_source;

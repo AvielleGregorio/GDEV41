@@ -96,10 +96,15 @@ class GameScene : public Scene {
     float animation_timer = 0;
     float animation_FPS = 4;
 
-    Texture ghost_texture;
     bool ghost_spin = true;
     float ghost_spin_timer = 0;
     float ghost_rotation = 0;
+    
+    Texture ghost_texture;
+    Texture ghost_ectoplasm_texture;
+    Texture spirit_texture;
+    Texture shadow_texture;
+    Texture shadow_splat_texture;
 
     Texture book_texture;
 
@@ -136,6 +141,10 @@ public:
         flerken.tentacles_texture = ResourceManager::GetInstance()->GetTexture("flerken_tentacles.png");
 
         ghost_texture = ResourceManager::GetInstance()->GetTexture("ghost.png");
+        ghost_ectoplasm_texture = ResourceManager::GetInstance()->GetTexture("ectoplasm.png");
+        spirit_texture = ResourceManager::GetInstance()->GetTexture("spirit.png");
+        shadow_texture = ResourceManager::GetInstance()->GetTexture("shadow.png");
+        shadow_splat_texture = ResourceManager::GetInstance()->GetTexture("shadow_splat.png");
 
         book_texture = ResourceManager::GetInstance()->GetTexture("book.png");
         background = ResourceManager::GetInstance()->GetTexture("background.png");
@@ -217,6 +226,7 @@ public:
             }
         }
 
+        librarian.hurt_timer -= deltaTime;
         accumulator += deltaTime;
         while (accumulator >= TIMESTEP) {
             float baseResistance = 1.0f;
@@ -341,6 +351,7 @@ public:
                     // cout << "ghost pos x: " << ghost.center.x << endl;
                     if (checkCollision(ghost, librarian)) {
                         ui.playerHealth -= ghostDamage;
+                        librarian.hurt_timer = 1.0f;
                         cout << "librarian + ghost " << endl;
                         ghost.despawn();
                         continue;   // skip movement/despawn check for this frame
@@ -566,7 +577,7 @@ public:
             {librarian.position.x, librarian.position.y, texture_base*texture_scale, texture_base*texture_scale},
             {texture_base*texture_scale/2, texture_base*texture_scale/2},
             0,
-            WHITE
+            ColorLerp(WHITE, RED, librarian.hurt_timer)
         );
 
         if (!flerken.isActive) {
@@ -617,16 +628,39 @@ public:
         for (Ectoplasm &e : ectoplasms) {
             if (e.isActive) {
                 DrawCircleV(e.position, e.size, RED);
+                DrawTexturePro(
+                    ghost_ectoplasm_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {e.position.x, e.position.y, texture_base*texture_scale, texture_base*texture_scale},
+                    {texture_base*texture_scale/2, texture_base*texture_scale/2},
+                    0,
+                    WHITE
+                );
             }
         }
 
         for (Shadow &s : shadows) {
             if (s.isActive) {
                 DrawCenteredRectangle(s.center, s.size, LIGHTGRAY);
-                //Draw Shadow
+                DrawTexturePro(
+                    shadow_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {s.center.x, s.center.y, texture_base*texture_scale, texture_base*texture_scale},
+                    {texture_base*texture_scale/2, texture_base*texture_scale/2},
+                    ghost_rotation,
+                    WHITE
+                );
                 if (librarian.isBlinded) {
                     float alpha = librarian.blindTimer;  // fades out as timer ends
-                    DrawRectangle(350, 250, 600, 300, Fade(LIGHTGRAY, alpha));  // Fades 
+                    // DrawRectangle(350, 250, 600, 300, Fade(LIGHTGRAY, alpha));  // Fades 
+                    DrawTexturePro(
+                        shadow_splat_texture,
+                        {0, 0, 320, 180},
+                        {0, 0, 1280, 720},
+                        {0, 0},
+                        0,
+                        Fade(WHITE, alpha)
+                    );
                 }
 
             }
@@ -646,7 +680,14 @@ public:
         for (Spirit &sp : spirits) {
             if (sp.isActive) {
                 DrawCenteredRectangle(sp.center, sp.size, BLUE);
-                //Draw Shadow
+                DrawTexturePro(
+                    spirit_texture,
+                    {0, 0, (float)texture_base, (float)texture_base},
+                    {sp.center.x, sp.center.y, texture_base*texture_scale, texture_base*texture_scale},
+                    {texture_base*texture_scale/2, texture_base*texture_scale/2},
+                    ghost_rotation,
+                    WHITE
+                );
                 
 
             }
