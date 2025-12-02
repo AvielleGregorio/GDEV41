@@ -108,8 +108,9 @@ public:
         ghost_rotation = 0;
 
         librarian.velocity = Vector2Zero();
-        librarian.health = 5;
+        librarian.health = 100;
         librarian.booksCollected = 0;
+        flerken.haunted_eaten = 0;
         flerken.isActive = false;
 
         for (int i = 0; i < MAX_BOOKS; i ++) {
@@ -132,27 +133,27 @@ public:
             spirits.push_back(sp);
         }
 
-        librarian.texture = ResourceManager::GetInstance()->GetTexture("librarian.png");
+        librarian.texture = ResourceManager::GetInstance()->GetTexture("./assets/librarian.png");
         librarian.texture_source = {0, 0, (float)texture_base, (float)texture_base};
 
-        flerken.sitting_texture = ResourceManager::GetInstance()->GetTexture("flerken_sitting.png");
+        flerken.sitting_texture = ResourceManager::GetInstance()->GetTexture("./assets/flerken_sitting.png");
         flerken.sitting_texture_source = {0, 0, (float)texture_base, (float)texture_base};
-        flerken.active_texture = ResourceManager::GetInstance()->GetTexture("flerken_active.png");
-        flerken.tentacles_texture = ResourceManager::GetInstance()->GetTexture("flerken_tentacles.png");
+        flerken.active_texture = ResourceManager::GetInstance()->GetTexture("./assets/flerken_active.png");
+        flerken.tentacles_texture = ResourceManager::GetInstance()->GetTexture("./assets/flerken_tentacles.png");
 
-        ghost_texture = ResourceManager::GetInstance()->GetTexture("ghost.png");
-        ghost_ectoplasm_texture = ResourceManager::GetInstance()->GetTexture("ectoplasm.png");
-        spirit_texture = ResourceManager::GetInstance()->GetTexture("spirit.png");
-        shadow_texture = ResourceManager::GetInstance()->GetTexture("shadow.png");
-        shadow_splat_texture = ResourceManager::GetInstance()->GetTexture("shadow_splat.png");
+        ghost_texture = ResourceManager::GetInstance()->GetTexture("./assets/ghost.png");
+        ghost_ectoplasm_texture = ResourceManager::GetInstance()->GetTexture("./assets/ectoplasm.png");
+        spirit_texture = ResourceManager::GetInstance()->GetTexture("./assets/spirit.png");
+        shadow_texture = ResourceManager::GetInstance()->GetTexture("./assets/shadow.png");
+        shadow_splat_texture = ResourceManager::GetInstance()->GetTexture("./assets/shadow_splat.png");
 
-        book_texture = ResourceManager::GetInstance()->GetTexture("book.png");
-        background = ResourceManager::GetInstance()->GetTexture("background.png");
+        book_texture = ResourceManager::GetInstance()->GetTexture("./assets/book.png");
+        background = ResourceManager::GetInstance()->GetTexture("./assets/background.png");
         
-        hurt_sound = ResourceManager::GetInstance()->GetSound("hurt.wav");
-        effect_sound = ResourceManager::GetInstance()->GetSound("effect.wav");
-        score_sound = ResourceManager::GetInstance()->GetSound("score.wav");
-        eat_sound = ResourceManager::GetInstance()->GetSound("eat.wav");
+        hurt_sound = ResourceManager::GetInstance()->GetSound("./assets/hurt.wav");
+        effect_sound = ResourceManager::GetInstance()->GetSound("./assets/effect.wav");
+        score_sound = ResourceManager::GetInstance()->GetSound("./assets/score.wav");
+        eat_sound = ResourceManager::GetInstance()->GetSound("./assets/eat.wav");
     }   
 
     void End() override {}
@@ -325,9 +326,24 @@ public:
         
             for (Ghost &ghost : ghosts) {
                 if (ghost.isActive) {
+                    
+                    int upSpeed = 50;
+                    float bounds = 10.0f;
+                    if (ghost.goUp) {
+                        ghost.sine_approx += deltaTime;
+                        if (ghost.sine_approx >= bounds) {
+                            ghost.goUp = false;
+                        }
+                    } else if (!ghost.goUp) {
+                        ghost.sine_approx -= deltaTime;
+                        if (ghost.sine_approx <= -bounds) {
+                            ghost.goUp = true;
+                        }
+                    } 
 
                     // Ghost moves straight across the screen from where they spawned
                     ghost.center = Vector2Add(ghost.center, Vector2Scale(ghost.velocity, TIMESTEP));
+                    ghost.center.y += (ghost.goUp ? upSpeed : -upSpeed) * deltaTime;
 
                     // Random ectoplasm drop
                     if (ectoplasms.size() < MAX_ECTOPLASM) {
@@ -343,7 +359,7 @@ public:
                     }
 
                     //Collision with Flerken
-                    if(checkCollision(ghost, flerken)){
+                    if(checkCollision(ghost, flerken) && flerken.isActive){
                         //no damage player
                         ghost.despawn();
                         ghost.isEaten = true;
@@ -412,7 +428,7 @@ public:
                     // Random spawns the shadows
 
                     //Checks Collision with Flerken
-                    if (checkCollision(shadow, flerken)) {
+                    if (checkCollision(shadow, flerken) && flerken.isActive) {
                         //No damage to player
                         shadow.despawn();
                         shadow.isEaten = true;
@@ -457,7 +473,7 @@ public:
                     spirit.center = Vector2Add(spirit.center, Vector2Scale(spirit.velocity, TIMESTEP));
 
                     //Collision with Flerken
-                    if(checkCollision(spirit, flerken)){
+                    if(checkCollision(spirit, flerken) && flerken.isActive){
                         //no damage player
                         spirit.despawn();
                         spirit.isEaten = true;
