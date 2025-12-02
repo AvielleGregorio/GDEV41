@@ -2,13 +2,17 @@
 #include <raymath.h>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <chrono>
+#include <ctime>
 #include "scene_manager.hpp"
 #include "game.hpp"
+using namespace std;
 
 struct UIManager {
     int booksCollected = 0;
     float gameTimer = 0.0f;
-    int playerHealth = 100;
+    int playerHealth = 5; // default 100
     int playerScore = 0;
     // float playerSpeed = 0;
 
@@ -561,7 +565,12 @@ public:
         }
 
         if (ui.playerHealth <= 0) {
-            
+            auto time = chrono::system_clock::now();
+            time_t timet = std::chrono::system_clock::to_time_t(time);
+            ofstream score;
+            score.open("scoreboard.txt", ios_base::app);
+            score << "Score: " << ui.booksCollected << " | " << ctime(&timet);
+            score.close();
             if (GetSceneManager() != nullptr) {
                 GetSceneManager()->SwitchScene(2);
             }
