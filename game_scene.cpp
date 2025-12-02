@@ -110,6 +110,11 @@ class GameScene : public Scene {
 
     Texture background;
 
+    Sound hurt_sound;
+    Sound effect_sound;
+    Sound score_sound;
+    Sound eat_sound;
+
 public:
     void Begin() override {
         for (int i = 0; i < MAX_BOOKS; i ++) {
@@ -148,6 +153,11 @@ public:
 
         book_texture = ResourceManager::GetInstance()->GetTexture("book.png");
         background = ResourceManager::GetInstance()->GetTexture("background.png");
+        
+        hurt_sound = ResourceManager::GetInstance()->GetSound("hurt.wav");
+        effect_sound = ResourceManager::GetInstance()->GetSound("effect.wav");
+        score_sound = ResourceManager::GetInstance()->GetSound("score.wav");
+        eat_sound = ResourceManager::GetInstance()->GetSound("eat.wav");
     }   
 
     void End() override {}
@@ -241,7 +251,6 @@ public:
 
             librarian.position = Vector2Add(librarian.position, Vector2Scale(librarian.velocity, TIMESTEP));
             float speed = Vector2Length(librarian.velocity);
-            cout << speed << endl;
             
 
             if (Vector2Length(librarian.velocity) < 100.0f) {
@@ -277,7 +286,7 @@ public:
 
                 flerken.position = Vector2Add(flerken.position, Vector2Scale(librarianDir, returnSpeed * TIMESTEP));
 
-                if (distance < 5.0f) {
+                if (distance < 50.0f) {
                     flerken.position = librarian.position;
                     flerken.velocity = Vector2Zero();
                     flerken.isActive = false;
@@ -315,6 +324,7 @@ public:
                     book.respawnCooldown = BOOK_RESPAWN_DELAY;
                     ui.booksCollected += 1;
                     ui.playerScore += SCORE_BOOKS;
+                    PlaySound(score_sound);
                 }
 
             }
@@ -343,6 +353,7 @@ public:
                         //no damage player
                         ghost.despawn();
                         ghost.isEaten = true;
+                        PlaySound(eat_sound);
                         cout << "ghost + flerken" << endl;
                         continue;   // skip movement/despawn check for this frame
                     }
@@ -351,6 +362,7 @@ public:
                     // cout << "ghost pos x: " << ghost.center.x << endl;
                     if (checkCollision(ghost, librarian)) {
                         ui.playerHealth -= ghostDamage;
+                        PlaySound(hurt_sound);
                         librarian.hurt_timer = 1.0f;
                         cout << "librarian + ghost " << endl;
                         ghost.despawn();
@@ -387,10 +399,11 @@ public:
                 }
 
                 //checks collision with libaraian (circle to circle)
-                if (e.isActive && checkCircleCircleCollision(librarian, e)) {
+                if (e.isActive && checkCollision(librarian, e)) {
                     // Deal damage to the player
+                    librarian.hurt_timer = 1.0f;
                     ui.playerHealth -= ectoplasmDamage;  // or whatever damage you want
-
+                    PlaySound(hurt_sound);
                     // Remove the ectoplasm after collision
                     e.isActive = false;
                     ectoplasms.erase(ectoplasms.begin() + i);
@@ -407,6 +420,7 @@ public:
                         //No damage to player
                         shadow.despawn();
                         shadow.isEaten = true;
+                        PlaySound(eat_sound);
                         cout << "shadow + flerken" << endl;
                         continue;
                     }
@@ -417,6 +431,7 @@ public:
                         librarian.isBlinded = true;
                         librarian.blindTimer = 3.0f;
                         cout << "BLINDED!" << endl;
+                        PlaySound(effect_sound);
                         shadow.despawn();
                         continue;
                     }
@@ -448,6 +463,7 @@ public:
                         //no damage player
                         spirit.despawn();
                         spirit.isEaten = true;
+                        PlaySound(eat_sound);
                         cout << "spirit + flerken" << endl;
                         continue;   // skip movement/despawn check for this frame
                     }
@@ -455,8 +471,9 @@ public:
                     // Collision with librarian
                     if (checkCollision(spirit, librarian)) {
                         librarian.isSlowed = true;
-                        librarian.slowTimer = 1.5f;
+                        librarian.slowTimer = 1.0f;
                         cout << " SLOWED DOWN " << endl;
+                        PlaySound(effect_sound);
                         spirit.despawn();
                         continue;   // skip movement/despawn check for this frame
                     }                    
@@ -542,6 +559,13 @@ public:
                 }
             }
         }
+
+        if (ui.playerHealth <= 0) {
+            
+            if (GetSceneManager() != nullptr) {
+                GetSceneManager()->SwitchScene(2);
+            }
+        }
     }
 
     void Draw() override {
@@ -571,13 +595,29 @@ public:
         }
         
         DrawCircleV(librarian.position, librarian.size, librarian.color);
+        Color player_tint;
+        float *player_tint_timer;
+        float temp_timer = 0;
+        if (librarian.isBlinded) {
+            player_tint = BLACK;
+            player_tint_timer = &(librarian.blindTimer);
+        } else if (librarian.hurt_timer > 0.0f) {
+            player_tint = RED;
+            player_tint_timer = &(librarian.hurt_timer);
+        } else if (librarian.isSlowed) {
+            player_tint = BLUE;
+            player_tint_timer = &(librarian.slowTimer);
+        } else {
+            player_tint = WHITE;
+            player_tint_timer = &temp_timer;
+        }
         DrawTexturePro(
             librarian.texture,
             librarian.texture_source,
             {librarian.position.x, librarian.position.y, texture_base*texture_scale, texture_base*texture_scale},
             {texture_base*texture_scale/2, texture_base*texture_scale/2},
             0,
-            ColorLerp(WHITE, RED, librarian.hurt_timer)
+            ColorLerp(WHITE, player_tint, *player_tint_timer)
         );
 
         if (!flerken.isActive) {

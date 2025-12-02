@@ -1,8 +1,10 @@
 #include <raylib.h>
 #include "scene_manager.hpp"
+#include "ui_library.hpp"
 
 class TitleScene : public Scene {
     Texture title;
+    UiLibrary ui_library;
 
 public:
     void Begin() override {
@@ -17,6 +19,7 @@ public:
                 GetSceneManager()->SwitchScene(1);
             }
         }
+        
     }
 
     void Draw() override {
@@ -28,6 +31,12 @@ public:
             0.0f,
             WHITE
         );
-        DrawText("Press ENTER", 960, 540, 30, BLACK);
+        if (ui_library.Button(0, "Start Game", { 960, 540, 200, 60 }))
+        {
+            if (GetSceneManager() != nullptr) {
+                GetSceneManager()->SwitchScene(1);
+            }
+        }
+        // DrawText("Press ENTER", 960, 540, 30, BLACK);
     }
 };

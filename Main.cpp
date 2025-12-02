@@ -7,7 +7,8 @@
 
 int main() {
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Scene and Resource Management");
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Library is Haunted, Flerken Help Me!");
+    InitAudioDevice();
     SetTargetFPS(60);
 
     SceneManager scene_manager;
@@ -47,7 +48,9 @@ int main() {
     }
 
     ResourceManager::GetInstance()->UnloadAllTextures();
+    ResourceManager::GetInstance()->UnloadAllSounds();
 
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
