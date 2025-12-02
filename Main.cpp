@@ -3,7 +3,7 @@
 #include "scene_manager.hpp"
 #include "title_scene.cpp"
 #include "game_scene.cpp"
-#include "leaderboard_scene.cpp"
+#include "scoreboard_scene.cpp"
 
 int main() {
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -19,12 +19,12 @@ int main() {
     GameScene game_scene;
     game_scene.SetSceneManager(&scene_manager);
 
-    LeaderboardScene leaderboard_scene;
-    leaderboard_scene.SetSceneManager(&scene_manager);
+    ScoreboardScene scoreboard_scene;
+    scoreboard_scene.SetSceneManager(&scene_manager);
 
     scene_manager.RegisterScene(&title_scene, 0);
     scene_manager.RegisterScene(&game_scene, 1);
-    scene_manager.RegisterScene(&leaderboard_scene, 2);
+    scene_manager.RegisterScene(&scoreboard_scene, 2);
 
     scene_manager.SwitchScene(0);
 
@@ -40,6 +40,10 @@ int main() {
         }
 
         EndDrawing();
+        
+        if (active_scene == nullptr) {
+            break;
+        }
     }
 
     Scene* active_scene = scene_manager.GetActiveScene();

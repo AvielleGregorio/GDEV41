@@ -1,10 +1,8 @@
 #include <raylib.h>
 #include "scene_manager.hpp"
-#include "ui_library.hpp"
 
 class TitleScene : public Scene {
     Texture title;
-    UiLibrary ui_library;
 
 public:
     void Begin() override {

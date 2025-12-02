@@ -9,43 +9,6 @@
 #include "game.hpp"
 using namespace std;
 
-struct UIManager {
-    int booksCollected = 0;
-    float gameTimer = 0.0f;
-    int playerHealth = 5; // default 100
-    int playerScore = 0;
-    // float playerSpeed = 0;
-
-    void Update(float deltaTime) {
-        gameTimer += deltaTime;
-    }
-
-    void Draw() { //Drawing the UI elements itself
-        // Draw the book counter
-        DrawText(TextFormat("Books: %d", booksCollected), 20, 20, 22, YELLOW);
-
-        // Draw the timer
-        DrawText(TextFormat("Time: %.2f", gameTimer), 20, 60, 22, SKYBLUE);
-
-        // Draw the Health Bar
-        int barX = 20;
-        int barY = 100;
-        int barWidth = 200;
-        int barHeight = 25;
-
-        DrawText("HP", 20, 100, 22, GREEN);
-
-        DrawRectangle(barX + 40, barY, barWidth, barHeight, LIGHTGRAY);
-        DrawRectangle(barX + 40, barY, playerHealth * 2, barHeight, GREEN); 
-
-        //Draw Score
-        DrawText(TextFormat("Score: %d", playerScore), 20, 140, 22, WHITE);
-        // DrawText(TextFormat("Speed: %.2f", playerSpeed), 20, 180, 22, WHITE);
-
-    }
-};
-
-
 void DrawCenteredRectangle(Vector2 center, Vector2 size, Color color) {
     Vector2 topLeft = {
         center.x - size.x/2,
@@ -57,9 +20,11 @@ void DrawCenteredRectangle(Vector2 center, Vector2 size, Color color) {
 class GameScene : public Scene {
     const float FPS = 60;
     const float TIMESTEP = 1/FPS;
+    float gameTimer = 0.0f;
     
     const int MAX_BOOKS = 10;
     const int SCORE_BOOKS = 10;
+    const int SCORE_EAT = 5;
     const float BOOK_RESPAWN_DELAY = 3.0f;
     const float BOOK_PICKUP_RADIUS = 35.0f;
 
@@ -84,7 +49,6 @@ class GameScene : public Scene {
 
     Player librarian;
     Flerken flerken;
-    UIManager ui;
 
     std::vector<Book> books;
     std::vector<Ghost> ghosts;
@@ -121,6 +85,33 @@ class GameScene : public Scene {
 
 public:
     void Begin() override {
+        gameTimer = 0.0f;
+        score = 0;
+        ghostCounter = 0;
+        shadowCounter = 0;
+        spiritCounter = 0;
+        
+        isDragging = false;
+        dragStart = {0,0};
+        dragEnd = {0,0};
+
+        books.clear();
+        ghosts.clear();
+        ectoplasms.clear();
+        shadows.clear();
+        spirits.clear();
+
+        accumulator = 0;
+        animation_timer = 0;
+
+        ghost_spin_timer = 0;
+        ghost_rotation = 0;
+
+        librarian.velocity = Vector2Zero();
+        librarian.health = 5;
+        librarian.booksCollected = 0;
+        flerken.isActive = false;
+
         for (int i = 0; i < MAX_BOOKS; i ++) {
             Book b;
             books.push_back(b);
@@ -168,8 +159,7 @@ public:
 
     void Update() override {
         float deltaTime = GetFrameTime();
-        // Updates UI
-        ui.Update(deltaTime); 
+        gameTimer += deltaTime;
 
         // if (ui.gameTimer >= 10) {
         //     GetSceneManager()->SwitchScene(2);
@@ -326,9 +316,9 @@ public:
                 if (checkCollision(book, librarian)) {
                     book.isActive = false;
                     book.respawnCooldown = BOOK_RESPAWN_DELAY;
-                    ui.booksCollected += 1;
-                    ui.playerScore += SCORE_BOOKS;
+                    librarian.booksCollected += 1;
                     PlaySound(score_sound);
+                    score += SCORE_BOOKS;
                 }
 
             }
@@ -359,13 +349,15 @@ public:
                         ghost.isEaten = true;
                         PlaySound(eat_sound);
                         cout << "ghost + flerken" << endl;
+                        flerken.haunted_eaten++;
+                        score += SCORE_EAT;
                         continue;   // skip movement/despawn check for this frame
                     }
 
                     // Collision with librarian
                     // cout << "ghost pos x: " << ghost.center.x << endl;
                     if (checkCollision(ghost, librarian)) {
-                        ui.playerHealth -= ghostDamage;
+                        librarian.health -= ghostDamage;
                         PlaySound(hurt_sound);
                         librarian.hurt_timer = 1.0f;
                         cout << "librarian + ghost " << endl;
@@ -406,7 +398,7 @@ public:
                 if (e.isActive && checkCollision(librarian, e)) {
                     // Deal damage to the player
                     librarian.hurt_timer = 1.0f;
-                    ui.playerHealth -= ectoplasmDamage;  // or whatever damage you want
+                    librarian.health -= ectoplasmDamage;  // or whatever damage you want
                     PlaySound(hurt_sound);
                     // Remove the ectoplasm after collision
                     e.isActive = false;
@@ -426,6 +418,8 @@ public:
                         shadow.isEaten = true;
                         PlaySound(eat_sound);
                         cout << "shadow + flerken" << endl;
+                        flerken.haunted_eaten++;
+                        score += SCORE_EAT;
                         continue;
                     }
 
@@ -469,6 +463,8 @@ public:
                         spirit.isEaten = true;
                         PlaySound(eat_sound);
                         cout << "spirit + flerken" << endl;
+                        flerken.haunted_eaten++;
+                        score += SCORE_EAT;
                         continue;   // skip movement/despawn check for this frame
                     }
 
@@ -564,13 +560,13 @@ public:
             }
         }
 
-        if (ui.playerHealth <= 0) {
+        if (librarian.health <= 0) {
             auto time = chrono::system_clock::now();
             time_t timet = std::chrono::system_clock::to_time_t(time);
-            ofstream score;
-            score.open("scoreboard.txt", ios_base::app);
-            score << "Score: " << ui.booksCollected << " | " << ctime(&timet);
-            score.close();
+            ofstream scoreboard;
+            scoreboard.open("scoreboard.txt", ios_base::app);
+            scoreboard << "Score: " << score << ", Time: " << gameTimer << " | Books: " << librarian.booksCollected << ", Haunted Eaten: " << flerken.haunted_eaten << " | " << ctime(&timet);
+            scoreboard.close();
             if (GetSceneManager() != nullptr) {
                 GetSceneManager()->SwitchScene(2);
             }
@@ -758,7 +754,25 @@ public:
         }
 
         //Draw the UI
-        ui.Draw();
+        DrawText(TextFormat("Books: %d", librarian.booksCollected), 20, 20, 22, YELLOW);
+
+        // Draw the timer
+        DrawText(TextFormat("Time: %.2f", gameTimer), 20, 60, 22, SKYBLUE);
+        
+        // Draw the Health Bar
+        int barX = 20;
+        int barY = 100;
+        int barWidth = 200;
+        int barHeight = 25;
+        
+        DrawText("HP", 20, 100, 22, GREEN);
+        
+        DrawRectangle(barX + 40, barY, barWidth, barHeight, LIGHTGRAY);
+        DrawRectangle(barX + 40, barY, librarian.health * 2, barHeight, GREEN); 
+        
+        DrawText(TextFormat("Haunted Eaten: %d", flerken.haunted_eaten), 20, 140, 22, SKYBLUE);
+        
+        DrawText(TextFormat("Score: %d", score), 20, 180, 22, SKYBLUE);
     }
 };
 

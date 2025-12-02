@@ -32,7 +32,8 @@ struct Player : CircleCollider {
     float slowTimer = 0.0f;
     float slowMult =  5.0f;
     float hurt_timer = 0.0f;
-    // To be replaced when Sprite
+    int booksCollected = 0;
+    int health = 5;
     Texture texture;
     Rectangle texture_source;
     
@@ -53,7 +54,7 @@ struct Flerken : CircleCollider {
     // To be replaced when Sprite
     // Texture playerTexture;
     // Rectangle textureSource;
-
+    int haunted_eaten = 0;
     Texture sitting_texture;
     Rectangle sitting_texture_source;
     Texture active_texture;

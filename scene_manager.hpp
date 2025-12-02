@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include "ui_library.hpp"
 
 using namespace std;
 
@@ -13,6 +14,8 @@ static ios_base::Init iostream_initializer; // <-- force init
 
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
+int score = 0;
+UiLibrary ui_library;
 
 class SceneManager;
 
@@ -89,6 +92,10 @@ public:
     // Gets the active scene
     Scene* GetActiveScene() {
         return active_scene;
+    }
+
+    void Close() {
+        active_scene = nullptr;
     }
 };
 
