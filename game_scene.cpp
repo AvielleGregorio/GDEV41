@@ -327,15 +327,15 @@ public:
             for (Ghost &ghost : ghosts) {
                 if (ghost.isActive) {
                     
-                    int upSpeed = 50;
+                    int upSpeed = 100;
                     float bounds = 10.0f;
                     if (ghost.goUp) {
-                        ghost.sine_approx += deltaTime;
+                        ghost.sine_approx += deltaTime*upSpeed;
                         if (ghost.sine_approx >= bounds) {
                             ghost.goUp = false;
                         }
                     } else if (!ghost.goUp) {
-                        ghost.sine_approx -= deltaTime;
+                        ghost.sine_approx -= deltaTime*upSpeed;
                         if (ghost.sine_approx <= -bounds) {
                             ghost.goUp = true;
                         }
